@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arpen Analytics — Monitoramento do Contrato (protótipo)</title>
+<style>
+:root{
+  --navy:#132a3e; --navy2:#1c3a54; --teal:#12a3a0; --teal-d:#0e857f;
+  --bg:#eef1f5; --card:#ffffff; --line:#e4e9f0; --ink:#1f2d3d; --muted:#7c8aa0;
+  --green:#2fa36b; --amber:#e0a92b; --red:#d1495b; --blue:#2f6fed;
+  --verde:#3ca05a; --amarelo:#d9a521; --laranja:#e07b2e; --branco:#9aa7b5; --azul:#2f6fed; --vermelho:#d1495b;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+.app{display:flex;min-height:100vh}
+.side{width:246px;background:var(--navy);color:#cdd8e4;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column}
+.brand{padding:22px 22px 14px}
+.brand h1{font-size:22px;color:#fff;letter-spacing:.5px}
+.brand h1 span{color:var(--teal)}
+.brand small{display:block;color:#7f93a8;font-size:10px;letter-spacing:2px;margin-top:2px}
+.nav-group{padding:8px 12px 2px;font-size:10px;letter-spacing:1.5px;color:#66788c;margin-top:8px;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 14px;margin:2px 8px;border-radius:8px;cursor:pointer;color:#c3d0de;font-size:13.5px;transition:.15s}
+.nav-item:hover{background:var(--navy2)}
+.nav-item.active{background:var(--teal);color:#fff;font-weight:600}
+.nav-item .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot.ok{background:#39d98a}.dot.wip{background:#ffce54}.dot.new{background:#5b9bff}.dot.dim{background:#e8833a}.dot.soon-dot{background:#5f7080}
+.nav-item.soon{opacity:.5;cursor:default;font-style:italic}.nav-item.soon:hover{background:transparent}
+.side .foot{margin-top:auto;padding:14px 18px;border-top:1px solid #22405a;font-size:11px;color:#7f93a8}
+.side .foot select{width:100%;margin-top:6px;background:var(--navy2);color:#e7eef5;border:1px solid #2c4a66;border-radius:6px;padding:6px}
+.content{flex:1;overflow-y:auto;height:100vh}
+.topbar{background:#fff;border-bottom:1px solid var(--line);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:5}
+.topbar .tt h2{font-size:19px}
+.topbar .tt p{color:var(--muted);font-size:12.5px;margin-top:2px}
+.toggle{display:flex;background:#eef1f5;border-radius:8px;padding:3px}
+.toggle button{border:0;background:transparent;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12.5px;color:var(--muted);font-weight:600;transition:background .12s,color .12s,transform .1s,box-shadow .1s}
+.toggle button:hover{background:rgba(255,255,255,.65);color:var(--ink)}
+.toggle button:active{transform:translateY(1px)}
+.toggle button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.toggle button.on:hover{background:#fff}
+.periodo{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 10px;font-size:12.5px;color:var(--ink);font-weight:600;cursor:pointer}
+.periodo-range{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
+.periodo-range input{border:1px solid var(--line);background:#fff;border-radius:7px;padding:5px 6px;font-size:11px;color:var(--ink);font-family:inherit}
+.kpiwarn{box-shadow:inset 3px 0 0 var(--amber)}
+.kpi2 .val2{font-size:20px;font-weight:700;margin:5px 0 2px;line-height:1;white-space:nowrap}
+.kpi-out{box-shadow:inset 3px 0 0 var(--red)}.kpi-risk{box-shadow:inset 3px 0 0 var(--amber)}.kpi-in{box-shadow:inset 3px 0 0 var(--green)}
+.rtk-card{cursor:pointer;transition:.12s}
+.rtk-card:hover{border-color:var(--teal)}
+.rtk-active{outline:2px solid var(--teal);outline-offset:-2px}
+.cid-row{transition:opacity .15s}
+.cid-row:hover .name{color:var(--teal-d);text-decoration:underline}
+.cid-row.cid-sel .name{color:var(--teal-d);font-weight:700}
+#bol-manch .bar-h.cls-sel .name,#bol-drill-bars .cid-row.cid-sel .name{font-weight:700}
+#bol-manch .bar-h.cls-sel,#bol-drill-bars .cid-row.cid-sel{background:rgba(18,163,160,.09);border-radius:6px}
+#bol-manch.has-sel .bar-h{opacity:.3}
+#bol-manch.has-sel .bar-h.cls-sel{opacity:1}
+#bol-drill-bars.has-sel .cid-row{opacity:.3}
+#bol-drill-bars.has-sel .cid-row.cid-sel{opacity:1}
+#rt-cid.has-sel .cid-row{opacity:.32}
+#rt-cid.has-sel .cid-row.cid-sel{opacity:1}
+.manch-strip{display:flex;flex-wrap:wrap;align-items:center;gap:16px;font-size:11.5px;color:var(--muted)}
+.ms-title{font-size:10px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);font-weight:700}
+.ms-item{display:flex;align-items:center;gap:5px}
+.ms-item i{width:9px;height:9px;border-radius:2px;display:inline-block}
+.cdot{width:10px;height:10px;border-radius:50%;display:inline-block;vertical-align:middle}
+.heat td.hc{text-align:center;font-weight:600;border:2px solid #fff;border-radius:4px}
+.heat-in{background:#cdeedd}.heat-risk{background:#fbe6bf}.heat-out{background:#f6c9d0}
+.mdet{font-size:11px;border-collapse:collapse;white-space:nowrap}
+.mdet th,.mdet td{padding:5px 8px;border-bottom:1px solid #f0f3f7;text-align:center}
+.mdet thead th{color:var(--muted);font-size:10px;text-transform:uppercase;font-weight:700}
+.mdet thead tr:first-child th{border-bottom:1px solid var(--line);background:#f7fafc}
+.mdet tbody td:first-child,.mdet thead th:first-child{position:sticky;left:0;background:#fff;text-align:left;z-index:1}
+.mdet .clh{cursor:pointer}.mdet .clh:hover{background:#eef7f7}
+.mdet .fade{opacity:.26}
+.mdet .spot{background:#eef7f7;font-weight:700}
+.heatday{border-collapse:separate;border-spacing:2px;table-layout:fixed}
+.heatday th:first-child,.heatday td:first-child{width:112px}
+.heatday th:not(:first-child),.heatday td:not(:first-child){width:26px}
+.heatday td,.heatday th{padding:3px 4px;font-size:10.5px;text-align:center}
+.heatday td.hh{color:var(--muted);font-weight:600;text-align:right;padding-right:8px}
+.heatday tr>td:first-child{white-space:nowrap;font-size:11px}
+.heatday th.dh small{display:block;font-size:9px;color:var(--muted);font-weight:400}
+.heatday td.cell{border-radius:2px;min-width:24px;padding:2px 3px;font-size:9px;font-weight:600;text-align:center;cursor:default}
+.heatday th.wknd{background:#f0f3f7}
+.etapas-row{display:flex;gap:10px;flex-wrap:wrap}
+.etapa-box{flex:1;min-width:96px;border:1px solid var(--line);border-radius:10px;padding:9px 10px;cursor:pointer;text-align:center;background:#fff;transition:.12s}
+.etapa-box:hover{border-color:var(--teal)}
+.etapa-box.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+.etapa-box .en{font-size:11px;font-weight:600;line-height:1.2}
+.etapa-box .ec{font-size:22px;font-weight:800;margin-top:3px}
+.ms-item b{color:var(--ink)}
+/* cores da classificação de risco 24h: clicáveis (filtram o gráfico) — 3D + foco + toggle */
+#rt-manch .ms-item{cursor:pointer;padding:3px 8px;border-radius:8px;box-shadow:0 1px 2px rgba(16,42,67,.10);transition:transform .1s,box-shadow .1s,opacity .15s,background .12s}
+#rt-manch .ms-item:hover{transform:translateY(-1px);box-shadow:0 3px 7px rgba(16,42,67,.14)}
+#rt-manch .ms-item:active{transform:translateY(1px);box-shadow:0 1px 1px rgba(16,42,67,.10)}
+#rt-manch .ms-item.ms-sel{background:rgba(18,163,160,.10);box-shadow:0 2px 6px rgba(16,42,67,.18)}
+#rt-manch.has-sel .ms-item{opacity:.35}
+#rt-manch.has-sel .ms-item.ms-sel{opacity:1}
+/* bolinhas de cor clicáveis (Médicos do turno + Exames): cara de botão tocável */
+.tcol,#rt-exames thead .exdot{cursor:pointer;border-radius:8px;transition:background .12s}
+.tcol .cdot,#rt-exames thead .exdot .cdot{width:15px;height:15px;box-shadow:0 0 0 3px #edf1f6;transition:transform .1s,box-shadow .1s}
+.tcol:hover,#rt-exames thead .exdot:hover{background:#eef7f7}
+.tcol:hover .cdot,#rt-exames thead .exdot:hover .cdot{transform:translateY(-1px) scale(1.12);box-shadow:0 0 0 3px rgba(18,163,160,.28),0 2px 6px rgba(16,42,67,.22)}
+.tcol:active .cdot,#rt-exames thead .exdot:active .cdot{transform:translateY(1px) scale(1.02)}
+.vsm{display:flex;align-items:stretch;overflow-x:auto;padding:8px 0 2px}
+.vsm-box{min-width:118px;flex-shrink:0;background:#f7fafc;border:1px solid var(--line);border-radius:10px;padding:10px 8px;text-align:center}
+.vsm-box .vn{font-size:12px;font-weight:600;color:var(--ink)}
+.vsm-box .vq{font-size:12px;color:var(--muted);margin-top:3px}
+.vsm-fim{background:#eef7f7;border-color:#cfeae9}
+.vsm-conn{flex-shrink:0;min-width:92px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;position:relative;font-size:10.5px}
+.vsm-conn::before{content:"";position:absolute;top:50%;left:0;right:0;height:2px;background:var(--line);z-index:0}
+.vc-media,.vc-maior{position:relative;z-index:1;background:#fff;padding:1px 6px;border-radius:6px;border:1px solid var(--line);font-weight:600;white-space:nowrap}
+.vc-media{color:var(--muted)}
+.vc-media.over{color:var(--red);border-color:#f0c4cb}
+.vc-meta{font-size:9px;color:#9aa7b5;font-weight:600;border:0;background:transparent;padding:0}
+.vc-maior{color:var(--ink);cursor:pointer}
+.vc-maior:hover{border-color:var(--teal);color:var(--teal-d)}
+.vc-maior.sel{outline:2px solid var(--navy);outline-offset:1px}
+.vsm-conn.gargalo::before{background:var(--red)}
+.vsm-conn.gargalo .vc-maior{background:var(--red);color:#fff;border-color:var(--red)}
+.chip{font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.chip .live{width:8px;height:8px;border-radius:50%;background:#39d98a;display:inline-block}
+.wrap{padding:22px 28px 60px}
+.page{display:none}.page.show{display:block;animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.banner{background:linear-gradient(90deg,#132a3e,#1c3a54);color:#dbe6f1;border-radius:12px;padding:14px 18px;font-size:12.5px;margin-bottom:20px;display:flex;gap:12px;align-items:center}
+.banner b{color:#fff}
+.badge{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px;letter-spacing:.3px;white-space:nowrap}
+.b-ok{background:#e2f6ec;color:#1c7a4d}.b-wip{background:#fdf3dd;color:#9a7414}.b-new{background:#e6efff;color:#2a56b5}
+.sec-head{display:flex;align-items:center;gap:10px;margin:0 0 14px;flex-wrap:wrap}
+.sec-head .q{color:var(--muted);font-size:12.5px}
+.grid{display:grid;gap:16px}
+.g4{grid-template-columns:repeat(4,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g2{grid-template-columns:1fr 1fr}.g6{grid-template-columns:repeat(6,1fr)}.g5{grid-template-columns:repeat(5,1fr)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.card h3{font-size:13px;color:var(--ink);margin-bottom:3px}
+.card .sub{color:var(--muted);font-size:11.5px;margin-bottom:12px}
+.card.kpi,.card.kpi2{padding:11px 13px}
+.kpi .lab,.kpi2 .lab{font-size:10.5px;letter-spacing:.3px;color:var(--muted);text-transform:uppercase;line-height:1.25}
+.kpi .val{font-size:24px;font-weight:700;margin:5px 0 2px}
+.kpi .meta{font-size:11.5px;color:var(--muted)}
+.kpi .meta.good{color:var(--green)}.kpi .meta.bad{color:var(--red)}
+.icon-sq{width:34px;height:34px;border-radius:9px;background:#eaf6f5;display:flex;align-items:center;justify-content:center;margin-bottom:8px;font-size:16px}
+.kpi2 .split{display:flex;gap:18px;margin-top:8px}
+.kpi2 .split .p{font-size:23px;font-weight:700;line-height:1}
+.kpi2 .split .l{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+.kpi2 .ex{font-size:11px;color:var(--muted);margin-top:8px}
+.score{font-size:60px;font-weight:800;line-height:1;color:var(--navy)}
+.score small{font-size:17px;color:var(--muted);font-weight:600}
+.farol{display:flex;height:16px;border-radius:8px;overflow:hidden;background:#eef1f5;margin-top:4px}
+.farol i{display:block;height:100%}
+#bol-nome{font-size:23px;font-weight:800}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.3px;padding:9px 10px;border-bottom:1px solid var(--line)}
+td{padding:10px;border-bottom:1px solid #f0f3f7}
+tr:last-child td{border-bottom:0}
+.status-pill{font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px}
+.s-in{background:#e2f6ec;color:#1c7a4d}.s-risk{background:#fdf3dd;color:#9a7414}.s-out{background:#fae3e6;color:#a5293a}
+.ofensor{background:#fff6f7 !important}
+.pts{font-weight:700}
+.steps{display:flex;gap:3px}
+.steps .st{width:22px;height:8px;border-radius:3px;background:#e4e9f0}
+.steps .st.on-in{background:var(--green)}.steps .st.on-risk{background:var(--amber)}.steps .st.on-out{background:var(--red)}
+.steps3{display:flex;gap:4px}
+.st3{width:28px;height:9px;border-radius:3px;background:#e4e9f0;cursor:pointer;transition:.12s}
+.st3.on-in{background:var(--green)}.st3.on-risk{background:var(--amber)}.st3.on-out{background:var(--red)}
+.st3:hover{outline:2px solid var(--teal);outline-offset:1px}
+.st3.sel{outline:2px solid var(--navy);outline-offset:1px}
+.faixa-desc{margin-top:10px;font-size:12.5px;color:var(--ink);background:#f2fbfb;border-left:4px solid var(--teal);padding:10px 13px;border-radius:8px}
+.faixa-tab{width:100%;font-size:12px;margin-top:4px;border-collapse:collapse}
+.faixa-tab td{padding:5px 8px;border-bottom:1px solid #dcefee}
+.faixa-tab tr:last-child td{border-bottom:0}
+.faixa-tab td:last-child{text-align:right;color:var(--muted);font-weight:600;white-space:nowrap}
+.frange{display:block;font-size:10.5px;color:var(--muted);margin-top:3px}
+.row-click{cursor:pointer}.row-click:hover{background:#f7fafc}
+.row-active{box-shadow:inset 3px 0 0 var(--teal);background:#f2fbfb !important}
+.bar-h{display:flex;align-items:center;gap:10px;margin:7px 0;transition:opacity .15s}
+.bar-h .name{width:150px;font-size:12px}
+.bar-h .track{flex:1;background:#f0f3f7;border-radius:6px;height:16px;overflow:hidden}
+.bar-h .fill{height:100%;border-radius:6px}
+.bar-h .n{width:120px;text-align:right;font-size:12px;color:var(--muted)}
+.callout{border-left:4px solid var(--teal);background:#f2fbfb;padding:11px 13px;border-radius:8px;font-size:12.5px}
+.callout.warn{border-color:var(--red);background:#fff6f7}
+.chip-box{border:1px solid var(--line);border-radius:10px;padding:11px 8px;text-align:center;cursor:pointer;font-size:12px;font-weight:600;color:var(--muted);transition:.15s;background:#fff}
+.chip-box:hover{border-color:var(--teal);color:var(--ink)}
+.chip-box.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+.chip-box .ic{font-size:18px;display:block;margin-bottom:5px}
+/* ===== profundidade suave (3D) — só nos controles clicáveis que mudam os dados ===== */
+.chip-box,.etapa-box,.periodo,.rtk-card{box-shadow:0 1px 2px rgba(16,42,67,.10);transition:transform .1s ease,box-shadow .1s ease,background .15s,border-color .15s,color .15s}
+.chip-box:hover,.etapa-box:hover,.periodo:hover,.rtk-card:hover{transform:translateY(-1px);box-shadow:0 4px 9px rgba(16,42,67,.15)}
+.chip-box:active,.etapa-box:active,.periodo:active,.rtk-card:active{transform:translateY(1px);box-shadow:0 1px 1px rgba(16,42,67,.12)}
+.chip-box.active,.etapa-box.active{box-shadow:0 3px 8px rgba(16,42,67,.22)}
+/* barras clicáveis: leve elevação no hover, afunda no clique */
+.cid-row,#bol-manch .bar-h{border-radius:6px;transition:transform .1s ease,box-shadow .1s ease,opacity .15s,background .12s}
+.cid-row:hover,#bol-manch .bar-h:hover{box-shadow:0 2px 7px rgba(16,42,67,.13)}
+.cid-row:active,#bol-manch .bar-h:active{transform:translateY(1px);box-shadow:0 1px 2px rgba(16,42,67,.10)}
+/* cabeçalhos de coluna clicáveis e dashes de faixa: pastilha levemente elevada */
+.mdet .clh,.tcol,.st3{box-shadow:0 1px 2px rgba(16,42,67,.12);transition:transform .1s ease,box-shadow .1s ease,background .12s,outline .12s}
+.mdet .clh:active,.tcol:active,.st3:active{transform:translateY(1px);box-shadow:0 1px 1px rgba(16,42,67,.10)}
+.legend{display:flex;gap:16px;font-size:11.5px;color:var(--muted);flex-wrap:wrap}
+.legend span{display:flex;align-items:center;gap:6px}
+.legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
+.tag{font-size:11px;color:var(--muted);background:#f0f3f7;padding:2px 8px;border-radius:6px}
+.placeholder{color:var(--muted);font-size:13px;line-height:1.7}
+.mini{font-size:11.5px;color:var(--muted)}
+.delta-pos{color:var(--green);font-weight:700}.delta-neg{color:var(--red);font-weight:700}
+h4.blk{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:22px 0 10px}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand"><h1>arpen<span> .</span></h1><small>ANALYTICS</small></div>
+
+    <div class="nav-group">Contrato</div>
+    <div class="nav-item active" data-page="p-monit"><span class="dot ok"></span>Desempenho Operacional</div>
+
+    <div class="nav-group">Tempo Real</div>
+    <div class="nav-item" data-page="p-fila"><span class="dot wip"></span>Jornada Operacional</div>
+    <div class="nav-item" data-page="p-pacientes"><span class="dot wip"></span>Jornada Assistencial</div>
+
+    <div class="nav-group">Dimensionamento</div>
+    <div class="nav-item" data-page="p-demanda"><span class="dot dim"></span>Demanda &amp; Escala</div>
+
+    <div class="nav-group">Corpo Clínico</div>
+    <div class="nav-item" data-page="p-comp"><span class="dot new"></span>Comparativo dos médicos</div>
+    <div class="nav-item" data-page="p-boletim"><span class="dot new"></span>Boletim Médico</div>
+
+    <div class="nav-group">Educadoc</div>
+    <div class="nav-item soon"><span class="dot soon-dot"></span>a construir</div>
+
+    <div class="nav-group">Escala</div>
+    <div class="nav-item soon"><span class="dot soon-dot"></span>a construir</div>
+
+    <div class="foot">
+      Contrato
+      <select onchange="return false"><option>Unimed Piracicaba</option><option>Unimed Araçatuba</option></select>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="topbar">
+      <div class="tt"><h2 id="pg-title">Desempenho Operacional</h2><p id="pg-q">Macro primeiro; clique em um indicador ou caixa para aprofundar.</p></div>
+      <div style="display:flex;gap:14px;align-items:center">
+        <div class="toggle"><button class="on" data-v="geral">Geral</button><button data-v="paa">Adulto</button><button data-v="pac">Infantil</button></div>
+        <div class="periodo-range"><span>De</span><input type="datetime-local" id="periodo-de" value="2026-08-01T00:00"><span>até</span><input type="datetime-local" id="periodo-ate" value="2026-08-31T23:59"></div>
+        <div class="chip"><span class="live"></span> D-1</div>
+      </div>
+    </div>
+
+    <div class="wrap">
+      <div class="banner">
+        <span>🧭</span>
+        <div><b>Protótipo da página de monitoramento (dados ilustrativos).</b> Começa no macro (pontuação e semáforo) e desce no <b>drill-down</b>: clique num indicador ou numa caixa e os CIDs abaixo se re-filtram para aquele recorte. Depois plugamos os dados reais da Unimed.</div>
+      </div>
+
+      <!-- ===================== MONITORAMENTO ===================== -->
+      <section id="p-monit" class="page show">
+
+        <!-- Pontuação -->
+        <div class="card">
+          <h3>Pontuação do período</h3><div class="sub" id="monit-periodo"></div>
+          <div style="display:flex;gap:34px;align-items:center;flex-wrap:wrap">
+            <div class="score" id="monit-score"></div>
+            <div style="flex:1;min-width:340px">
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px"><span>PAA · adulto</span><span id="monit-paa" style="font-weight:600"></span></div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px"><span>PAC · infantil</span><span id="monit-pac" style="font-weight:600"></span></div>
+              <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:10px;color:var(--muted)"><span>Vigência do contrato</span><span id="monit-vig"></span></div>
+              <div class="farol" id="monit-farol"></div>
+              <div class="legend" style="margin-top:8px">
+                <span><i style="background:var(--green)"></i> pontos garantidos</span>
+                <span><i style="background:var(--amber)"></i> em risco</span>
+                <span><i style="background:var(--red)"></i> perdidos</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Semáforo -->
+        <h4 class="blk">Semáforo por indicador — clique numa linha para aprofundar</h4>
+        <div class="card" style="padding:4px 8px"><table id="tb-monit-sem"></table></div>
+        <div class="mini" style="margin-top:6px">Na coluna <b>Faixa</b>, clique num traço (Mínima · Mediana · Máxima) para ver o valor de referência daquele indicador ao lado.</div>
+
+        <!-- KPIs de apoio -->
+        <h4 class="blk">Dados de apoio — segue o filtro (Geral / Adulto / Infantil)</h4>
+        <div class="grid g4" id="monit-kpis"></div>
+
+        <!-- Análise dirigida: chips + Manchester + CID -->
+        <h4 class="blk">Análise dirigida — aprofundar por</h4>
+        <div class="grid g6" id="drill-chips" style="margin-bottom:16px"></div>
+
+        <div class="grid g2">
+          <div class="card">
+            <h3 id="classif-title">Atendimentos por classificação</h3><div class="sub" id="classif-sub">Manchester · volume e complexidade do período</div>
+            <div id="monit-manch"></div>
+          </div>
+          <div class="card">
+            <h3 id="drill-title">CIDs — visão global</h3><div class="sub" id="drill-stat"></div>
+            <div id="drill-bars"></div>
+            <div class="callout" id="drill-tip" style="margin-top:12px"></div>
+          </div>
+        </div>
+
+        <!-- Ranking médicos -->
+        <h4 class="blk">Ranking dos médicos — do pior para o melhor (indicadores do contrato)</h4>
+        <div class="card" style="padding:4px 8px"><table id="tb-rank"></table></div>
+      </section>
+
+      <!-- ===================== DRILL PAGES (próximas) ===================== -->
+      <section id="p-fila" class="page">
+        <div class="sec-head"><span class="badge b-wip">🟠 EM CONSTRUÇÃO</span><span class="q">Operação agora — média móvel 24h (hoje D-1; alvo hora a hora).</span></div>
+
+        <h4 class="blk">Indicadores do contrato — últimas 24h (sinaliza quem sai da meta)</h4>
+        <div class="grid g4" id="rt-kpis"></div>
+        <div class="card" style="margin-top:12px;padding:9px 16px"><div id="rt-manch" class="manch-strip"></div></div>
+
+        <div class="card" style="margin-top:16px">
+          <h3>Atendimentos por hora × tempo de espera</h3>
+          <div class="sub">barras = atendimentos por hora (nº acima da barra) · linha = espera até atendimento médico (passe o cursor nas bolinhas) · régua lateral em minutos</div>
+          <div id="rt-combo"></div>
+          <div class="legend" style="margin-top:6px">
+            <span><i style="background:#1c3a54"></i> atendimentos/hora</span>
+            <span><i style="background:#1c3a54;opacity:.30"></i> horas ainda por vir</span>
+            <span><i style="background:var(--teal)"></i> espera até atendimento médico</span>
+            <span><i style="background:var(--red)"></i> hora atual</span>
+          </div>
+          <div class="mini" id="rt-combo-cap" style="margin-top:6px">24h · todas as classificações · clique numa cor da classificação de risco (acima) para filtrar o gráfico</div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <h3>Jornada do paciente (VSM) — tempo de espera entre as etapas</h3>
+          <div class="sub">da chegada até a alta ou internação · o maior tempo (gargalo) fica em vermelho</div>
+          <div id="rt-vsm"></div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:10px">
+            <div><h3>Médicos do turno — com quem falar</h3><div class="sub" id="turno-sub">onde cada um tem oportunidade de melhorar · 🔴 fora/em risco</div></div>
+            <div class="toggle" id="turno-toggle"><button data-t="manha">Manhã · 07–13h</button><button data-t="tarde">Tarde · 13–19h</button><button data-t="noturno">Noturno · 19–07h</button></div>
+          </div>
+          <table id="rt-turno" style="margin-top:8px"></table>
+          <div class="mini" style="margin-top:8px">Leitura: espera alta com <b>atend/h baixo</b> e baixa complexidade = não está rendendo. Espera alta com <b>alta complexidade</b> = justificada. Colunas em vermelho = onde agir.</div>
+        </div>
+
+        <div class="grid g2" style="margin-top:16px">
+          <div class="card"><h3 id="rt-cid-title">CIDs nas últimas 24h</h3><div class="sub" id="rt-cid-sub">clique num indicador acima para filtrar</div><div id="rt-cid"></div></div>
+          <div class="card">
+            <h3>Custo — ticket médio da consulta</h3><div class="sub" id="rt-custo-sub">últimas 24h · composição do custo por atendimento</div>
+            <div style="display:flex;gap:20px;align-items:baseline;margin:4px 0 10px"><div class="score" id="rt-custo-tkm" style="font-size:38px">R$ 45,80</div><div class="mini" id="rt-custo-meta">meta ≤ R$ 48,00 · <b style="color:var(--green)">dentro</b></div></div>
+            <div id="rt-custo"></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <h3>Exames — principais solicitados</h3><div class="sub" id="rt-exames-sub">quantitativo e ticket médio (24h) · clique num CID acima para filtrar por patologia</div>
+          <table id="rt-exames" style="margin-top:4px"></table>
+        </div>
+      </section>
+
+
+      <section id="p-pacientes" class="page">
+        <div class="sec-head"><span class="badge b-wip">🟠 EM CONSTRUÇÃO</span><span class="q">Pacientes presentes na unidade no período — clique numa etapa para filtrar.</span></div>
+        <h4 class="blk">Etapas da jornada — pacientes por fase (clique para filtrar)</h4>
+        <div class="etapas-row" id="pac-etapas"></div>
+        <h4 class="blk">Tempos médios por etapa × SLA <span style="font-weight:400;color:var(--muted);font-size:12px">(verde no SLA · vermelho fora)</span></h4>
+        <div class="grid g4" id="pac-tempos"></div>
+        <h4 class="blk" id="pac-tbl-title">Pacientes na unidade (LGPD: código + CID · sem nome)</h4>
+        <div class="card" style="padding:4px 8px;overflow-x:auto"><table id="tb-pacientes" style="min-width:1300px"></table></div>
+      </section>
+
+      <section id="p-demanda" class="page">
+        <div class="sec-head"><span class="badge b-new">🔵 NOVO</span><span class="q">Demanda por dia e hora × escala — para dimensionar a equipe.</span></div>
+        <div class="card">
+          <div style="overflow-x:auto">
+            <h3>Mapa de calor — tempo de espera</h3><div class="sub">dia 1–31 × hora · verde = baixo · vermelho = alto (meta ≤ 50 min)</div>
+            <table id="heat-espera" class="heatday"></table>
+            <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:20px;gap:10px;flex-wrap:wrap">
+              <div><h3>Mapa de calor — abertura de ficha</h3><div class="sub" id="ficha-sub">dia 1–31 × hora · intensidade = volume de atendimentos</div></div>
+              <div class="toggle" id="ficha-toggle"><button data-m="vol" class="on">Volume</button><button data-m="med">Por médico (÷ escala)</button></div>
+            </div>
+            <table id="heat-ficha" class="heatday"></table>
+            <h3 id="escala-toggle" style="margin-top:20px;cursor:pointer;user-select:none"><span id="escala-caret">▸</span> Escala por hora × dia — quantidade de médicos <span style="font-weight:400;font-size:12px;color:var(--muted)">(clique para abrir)</span></h3>
+            <div id="escala-wrap" style="display:none">
+              <div class="sub">alinhada às colunas acima · padrão por turno projetado na hora (Seg–Dom) · base da divisão "por médico"</div>
+              <table id="tb-escala" class="heatday"></table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="p-boletim" class="page">
+        <div class="sec-head"><span class="badge b-new">🔵 NOVO</span><span class="q">Extrato do médico frente ao grupo — mesmo layout do Desempenho, por médico · encaminhável ao plantonista.</span></div>
+        <div style="margin-bottom:14px"><span style="font-size:12px;color:var(--muted);margin-right:8px">Pesquisar médico:</span><select id="bol-sel" class="periodo" style="min-width:280px"></select></div>
+        <div class="card">
+          <h3 id="bol-nome"></h3><div class="sub">PAA · ago/2026 · comparação com a média da equipe</div>
+          <div style="display:flex;gap:32px;align-items:center;flex-wrap:wrap;margin-top:8px">
+            <div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Indicadores dentro da meta</div><div class="score" id="bol-placar" style="font-size:46px"></div></div>
+            <div style="flex:1;min-width:300px"><div class="farol" id="bol-farol"></div><div class="legend" style="margin-top:8px"><span><i style="background:var(--green)"></i> dentro</span><span><i style="background:var(--amber)"></i> em risco</span><span><i style="background:var(--red)"></i> fora</span></div></div>
+            <button class="periodo" onclick="return false" style="cursor:pointer">⤓ Exportar / compartilhar</button>
+          </div>
+        </div>
+        <h4 class="blk">Seus indicadores × meta × média da equipe</h4>
+        <div class="card" style="padding:4px 8px"><table id="bol-sem"></table></div>
+        <h4 class="blk">Dados de apoio — você × média da equipe</h4>
+        <div class="grid g4" id="bol-apoio"></div>
+        <h4 class="blk">Análise dirigida — aprofundar por</h4>
+        <div class="grid g6" id="bol-chips"></div>
+        <div class="grid g2" style="margin-top:16px">
+          <div class="card"><h3 id="bol-classif-title">Atendimentos por classificação</h3><div class="sub" id="bol-classif-sub">volume e complexidade do médico</div><div id="bol-manch"></div></div>
+          <div class="card"><h3 id="bol-drill-title">CIDs — visão global</h3><div class="sub" id="bol-drill-stat"></div><div id="bol-drill-bars"></div><div class="callout" id="bol-drill-tip" style="margin-top:12px"></div></div>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <h3>Custo discriminado — ticket médio da consulta</h3><div class="sub" id="bol-custo-sub">composição do custo por atendimento · clique numa classificação (esq.) ou num CID (dir.) para detalhar</div>
+          <div style="display:flex;gap:20px;align-items:baseline;margin:4px 0 10px"><div class="score" id="bol-custo-tkm" style="font-size:38px">R$ 0</div><div class="mini" id="bol-custo-meta">meta ≤ R$ 48,00</div></div>
+          <div id="bol-custo-bars"></div>
+        </div>
+        <div class="callout" id="bol-resumo" style="margin-top:16px"></div>
+      </section>
+
+      <section id="p-comp" class="page">
+        <div class="sec-head"><span class="badge b-new">🔵 NOVO</span><span class="q">Compare a equipe (mapas de calor); depois um médico entre períodos.</span></div>
+        <div class="grid g2">
+          <div class="card"><h3>Indicadores do contrato</h3><div class="sub">médicos × indicadores · cor = situação vs meta (verde ok · âmbar risco · vermelho fora)</div><div style="overflow-x:auto"><table id="heat-atend" style="min-width:720px"></table></div></div>
+          <div class="card"><h3>Média de atend/turno</h3><div class="sub">médicos × turno · média de atendimentos por plantão (não o total)</div><div style="overflow-x:auto"><table id="heat-hora" style="min-width:320px"></table></div></div>
+        </div>
+        <h4 class="blk">Comparação de um médico entre períodos</h4>
+        <div id="comp-sel" style="margin-bottom:14px"></div>
+        <div class="card" style="padding:4px 8px"><table id="tb-comp-periodo"></table></div>
+        <h4 class="blk">Resumo da performance no período</h4>
+        <div class="callout" id="comp-resumo"></div>
+        <h4 class="blk">Detalhamento — todos os indicadores por médico</h4>
+        <div id="meddet-cap" class="mini" style="margin:-6px 0 8px">Clique numa classificação (▲) para recalcular espera, medicação, exames e custo só daquela classificação.</div>
+        <div class="card" style="padding:4px 8px;overflow-x:auto"><table id="tb-meddet" class="mdet"></table></div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<script>
+/* =====================================================================
+   BLOCO DE DADOS — trocar aqui pelos dados reais da Unimed (o layout se redesenha).
+   ===================================================================== */
+const DADOS = {
+  pontuacao:{periodo:"01/08/2026 a 31/08/2026", total:1825, max:2000, paa:825, paaMax:1000, pac:1000, pacMax:1000, vig:"01/07/2026 a 30/06/2027"},
+  farol:{garantidos:1750, risco:75, perdido:175}, // soma = 2000
+
+  // [nome, meta, resultado, faixaRange, faixaAtual, pts, ptsMax, status, ctxKey, {min,med,max} = valor por faixa]
+  indicadores:[
+    ["Espera após a triagem","≤ 00:50","00:08","Até 00:50",1,225,225,"in","espera",{max:"Até 00:50 · 225 pts",med:"00:51 a 01:20 · 110 pts",min:"Acima de 01:20 · 0 pts"}],
+    ["Pacientes medicados no PA","≤ 30%","40,12%","Acima de 32%",4,0,150,"out","medicados",{max:"Até 30% · 150 pts",med:"30,01% a 32% · 75 pts",min:"Acima de 32% · 0 pts"}],
+    ["Solicitação de exames laboratório","≤ 25%","12,40%","Até 25%",1,200,200,"in","lab",{max:"Até 25% · 200 pts",med:"25,01% a 32% · 100 pts",min:"Acima de 32% · 0 pts"}],
+    ["Solicitação de exames imagem","≤ 20%","17,09%","Até 20%",1,100,100,"in","exames",{max:"Até 20% · 100 pts",med:"20,01% a 23% · 50 pts",min:"Acima de 23% · 0 pts"}],
+    ["Retorno em 72h (mesmo CID)","≤ 10%","4,26%","Até 10%",1,125,125,"in","retorno",{max:"Até 10% · 125 pts",med:"10,01% a 16% · 60 pts",min:"Acima de 16% · 0 pts"}],
+    ["Conversão para internação","≤ 0,50%","0,61%","0,51 a 0,7%",2,75,100,"risk","internacao",{max:"Até 0,50% · 100 pts",med:"0,51% a 0,80% · 75 pts",min:"Acima de 0,80% · 0 pts"}],
+    ["Custo por atendimento","≤ R$ 48,00","R$ 43,95","Até R$ 55,00",1,100,100,"in","custo",{max:"Até R$ 55,00 · 100 pts",med:"R$ 55,01 a R$ 60,00 · 50 pts",min:"Acima de R$ 60,00 · 0 pts"}],
+  ],
+  indicadoresPAC:[
+    ["Espera após a triagem","≤ 00:50","00:12","Até 00:50",1,225,225,"in","espera",{max:"Até 00:50 · 225 pts",med:"00:51 a 01:20 · 110 pts",min:"Acima de 01:20 · 0 pts"}],
+    ["Pacientes medicados no PA","≤ 30%","22,00%","Até 30%",1,100,100,"in","medicados",{max:"Até 30% · 100 pts",med:"30,01% a 32% · 50 pts",min:"Acima de 32% · 0 pts"}],
+    ["Solicitação de exames laboratório","≤ 25%","9,80%","Até 25%",1,200,200,"in","lab",{max:"Até 25% · 200 pts",med:"25,01% a 32% · 100 pts",min:"Acima de 32% · 0 pts"}],
+    ["Solicitação de exames imagem","≤ 20%","11,20%","Até 20%",1,150,150,"in","exames",{max:"Até 20% · 150 pts",med:"20,01% a 23% · 75 pts",min:"Acima de 23% · 0 pts"}],
+    ["Retorno em 72h (mesmo CID)","≤ 5%","2,73%","Até 5%",1,125,125,"in","retorno",{max:"Até 5% · 125 pts",med:"5,01% a 8% · 60 pts",min:"Acima de 8% · 0 pts"}],
+    ["Conversão para internação","≤ 0,50%","0,30%","Até 0,50%",1,100,100,"in","internacao",{max:"Até 0,50% · 100 pts",med:"0,51% a 0,80% · 75 pts",min:"Acima de 0,80% · 0 pts"}],
+    ["Custo por atendimento","≤ R$ 26,00","R$ 20,88","Até R$ 26,00",1,100,100,"in","custo",{max:"Até R$ 26,00 · 100 pts",med:"R$ 26,01 a R$ 30,00 · 50 pts",min:"Acima de R$ 30,00 · 0 pts"}],
+  ],
+
+  kpis:[
+    {lab:"Atendimentos no período", geral:"13.713", paa:"9.964", pac:"3.749", ex:"volume total", st:""},
+    {lab:"Espera após a triagem", geral:"00:09", paa:"00:08", pac:"00:12", ex:"meta ≤ 00:50", st:"in"},
+    {lab:"Pacientes medicados no PA", geral:"35,4%", paa:"40,12%", pac:"22,00%", ex:"meta ≤ 30%", st:"out"},
+    {lab:"Solicitação de laboratório", geral:"11,5%", paa:"12,40%", pac:"9,80%", ex:"meta ≤ 25%", st:"in"},
+    {lab:"Solicitação de imagem", geral:"15,3%", paa:"17,09%", pac:"11,20%", ex:"meta ≤ 20%", st:"in"},
+    {lab:"Retorno em 72h", geral:"3,8%", paa:"4,26%", pac:"2,73%", ex:"meta ≤10% · ≤5%", st:"in"},
+    {lab:"Conversão para internação", geral:"0,49%", paa:"0,61%", pac:"0,30%", ex:"meta ≤ 0,50%", st:"risk"},
+    {lab:"Custo por atendimento", geral:"R$ 37,60", paa:"R$ 43,95", pac:"R$ 20,88", ex:"meta ≤R$48 · ≤R$26", st:"in"},
+  ],
+
+  manchester:[["Verde","var(--verde)",10900,"79,5%"],["Amarelo","var(--amarelo)",2250,"16,4%"],["Laranja","var(--laranja)",250,"1,8%"],["Branco","var(--branco)",180,"1,3%"],["Azul","var(--azul)",125,"0,9%"],["Vermelho","var(--vermelho)",8,"0,1%"]],
+
+  /* painel de classificação sensível ao contexto: [classificação, quantidade] */
+  classif:{
+    global:[["Verde",10900],["Amarelo",2250],["Laranja",250],["Branco",180],["Azul",125],["Vermelho",8]],
+    espera:[["Verde",10900],["Amarelo",2250],["Laranja",250],["Branco",180],["Azul",125],["Vermelho",8]],
+    custo:[["Verde",10900],["Amarelo",2250],["Laranja",250],["Branco",180],["Azul",125],["Vermelho",8]],
+    medicados:[["Verde",3216],["Amarelo",1850],["Laranja",180],["Branco",30],["Azul",60],["Vermelho",8]],
+    lab:[["Verde",994],["Amarelo",1100],["Laranja",190],["Branco",10],["Azul",45],["Vermelho",7]],
+    exames:[["Verde",1368],["Amarelo",1500],["Laranja",220],["Branco",8],["Azul",55],["Vermelho",8]],
+    retorno:[["Verde",280],["Amarelo",120],["Laranja",15],["Branco",5],["Azul",5],["Vermelho",0]],
+    internacao:[["Verde",6],["Amarelo",28],["Laranja",12],["Branco",0],["Azul",2],["Vermelho",1]],
+  },
+  classifInfo:{
+    global:["Atendimentos por classificação","volume e complexidade do período"],
+    espera:["Atendimentos por classificação","cruze com o tempo médio ao lado: volume × complexidade × tempo"],
+    custo:["Atendimentos por classificação","volume e complexidade do período"],
+    medicados:["Medicações prescritas por classificação","quanto da medicação está nos verdes (baixa complexidade)"],
+    lab:["Solicitações de laboratório por classificação","onde se concentra o pedido de exame"],
+    exames:["Exames de imagem por classificação","onde se concentra o pedido de imagem"],
+    retorno:["Retornos em 72h por classificação","perfil de risco de quem retorna"],
+    internacao:["Internações por classificação","complexidade de quem interna"],
+  },
+  esperaTempo:[["Verde",6],["Amarelo",38],["Laranja",11],["Branco",8],["Azul",6],["Vermelho",1]],
+
+  chips:[["global","Atendimentos","🩺"],["medicados","Medicados","💊"],["lab","Laboratório","🧪"],["exames","Exames imagem","🩻"],["retorno","Retorno 72h","↩️"],["internacao","Internação","🏥"]],
+
+  cids:{
+    global:[["J06 · IVAS",1180],["M54 · Lombalgia",760],["R51 · Cefaleia",640],["A09 · GECA",590],["R10 · Dor abdominal",520],["J45 · Asma",300]],
+    medicados:[["R10 · Dor abdominal",680],["A09 · GECA",470],["N39 · ITU",360],["R51 · Cefaleia",330],["J06 · IVAS",300]],
+    lab:[["R10 · Dor abdominal",240],["N39 · ITU",190],["A09 · GECA",160],["R50 · Febre",120],["R07 · Dor torácica",95]],
+    exames:[["S06 · TCE",210],["M54 · Lombalgia",180],["R10 · Dor abdominal",160],["S93 · Entorse",140],["R07 · Dor torácica",120]],
+    retorno:[["J06 · IVAS",96],["A09 · GECA",71],["R51 · Cefaleia",58],["M54 · Lombalgia",44],["J45 · Asma",30]],
+    internacao:[["J18 · Pneumonia",12],["A41 · Sepse",9],["N17 · IRA",7],["I50 · ICC",6],["K35 · Apendicite",5]],
+  },
+  exameTipo:[["RX",1310,"R$ 42.100"],["Ultrassom",640,"R$ 61.200"],["Tomografia",520,"R$ 138.900"],["Ressonância",180,"R$ 96.400"]],
+  medTop:[["Dipirona",1820],["Ondansetrona",760],["Cetoprofeno",640],["Omeprazol",520],["Soro fisiológico 0,9%",480]],
+  labTop:[["Hemograma",420],["PCR",300],["Urina tipo I",240],["Eletrólitos",180],["Glicemia",150]],
+
+  /* ===== TEMPO REAL ===== */
+  rtKpis:[
+    {lab:"Atendimentos", val:"642", meta:"últimas 24h", st:"", ctx:"global"},
+    {lab:"Espera após a triagem", val:"00:11", meta:"meta ≤ 00:50", st:"in", ctx:"espera"},
+    {lab:"Pacientes medicados no PA", val:"38,5%", meta:"meta ≤ 30%", st:"out", ctx:"medicados"},
+    {lab:"Solicitação de laboratório", val:"13,1%", meta:"meta ≤ 25%", st:"in", ctx:"lab"},
+    {lab:"Solicitação de imagem", val:"18,2%", meta:"meta ≤ 20%", st:"risk", ctx:"exames"},
+    {lab:"Retorno em 72h", val:"4,1%", meta:"meta ≤ 10%", st:"in", ctx:"retorno"},
+    {lab:"Conversão para internação", val:"0,58%", meta:"meta ≤ 0,50%", st:"risk", ctx:"internacao"},
+    {lab:"Custo por atendimento", val:"R$ 45,80", meta:"meta ≤ R$ 48", st:"in", ctx:"custo"},
+  ],
+  rtHoras:[12,8,6,5,6,10,18,28,38,44,42,40,36,34,38,42,40,34,28,24,20,17,15,13],
+  esperaMedico:[8,7,6,6,7,9,14,22,28,34,30,26,24,21,26,31,28,24,20,16,13,11,10,9],
+  esperaTriagem:[3,3,2,2,3,4,7,10,12,14,12,10,9,8,10,12,11,9,7,6,5,4,4,3],
+  vsm:[
+    {n:"Triagem", q:"642 pac."},
+    {n:"Recepção", q:"638", media:"3 min", maior:"9 min", meta:5, pac:"#A-2064 · amarelo · R10 Dor abdominal"},
+    {n:"Atend. médico", q:"620", media:"7 min", maior:"21 min", meta:10, pac:"#A-2043 · amarelo · R07 Dor torácica"},
+    {n:"Exames complementares", q:"410", media:"8 min", maior:"26 min", meta:15, pac:"#A-2049 · verde · M54 Lombalgia"},
+    {n:"Reavaliação", q:"280", media:"22 min", maior:"58 min", meta:20, pac:"#A-2058 · verde · R51 Cefaleia"},
+  ],
+  vsmFim:{media:"34 min", maior:"1h07", meta:30, pac:"#A-2055 · laranja · R55 Síncope", alta:"86%", internacao:"14%", leito:"41 min"},
+  custoComp:[["Exames de imagem",6.80],["Laboratório",3.40],["Medicação",9.80],["Materiais",3.30]],
+  /* custo discriminado por classificação de risco: tkm + composição [imagem, lab, medicação, materiais] */
+  custoClassif:{
+    Vermelho:{tkm:"R$ 138", comp:[["Exames de imagem",58.0],["Laboratório",34.0],["Medicação",32.0],["Materiais",14.0]]},
+    Laranja:{tkm:"R$ 96", comp:[["Exames de imagem",38.0],["Laboratório",24.0],["Medicação",22.0],["Materiais",12.0]]},
+    Amarelo:{tkm:"R$ 61", comp:[["Exames de imagem",22.0],["Laboratório",14.0],["Medicação",17.0],["Materiais",8.0]]},
+    Verde:{tkm:"R$ 31", comp:[["Exames de imagem",8.0],["Laboratório",5.0],["Medicação",13.0],["Materiais",5.0]]},
+    Azul:{tkm:"R$ 24", comp:[["Exames de imagem",4.0],["Laboratório",4.0],["Medicação",12.0],["Materiais",4.0]]},
+    Branco:{tkm:"R$ 22", comp:[["Exames de imagem",3.0],["Laboratório",3.0],["Medicação",12.0],["Materiais",4.0]]},
+  },
+  examesRT:[
+    {n:"RX", q:210, tkm:"R$ 32", sub:[["RX tórax",90],["RX membros",64],["RX abdome",32],["RX coluna",24]], classif:[["Verde",120],["Amarelo",60],["Laranja",18],["Branco",6],["Azul",5],["Vermelho",1]]},
+    {n:"Ultrassom", q:120, tkm:"R$ 96", sub:[["USG abdome total",44],["USG obstétrico",30],["Doppler venoso",24],["USG partes moles",22]], classif:[["Verde",70],["Amarelo",34],["Laranja",10],["Branco",3],["Azul",2],["Vermelho",1]]},
+    {n:"Laboratório", q:520, tkm:"R$ 22", sub:[["Hemograma",180],["PCR",120],["Eletrólitos",90],["Urina tipo I",70],["Glicemia",60]], classif:[["Verde",300],["Amarelo",160],["Laranja",35],["Branco",12],["Azul",10],["Vermelho",3]]},
+    {n:"Tomografia", q:84, tkm:"R$ 267", sub:[["TC crânio",38],["TC abdome",24],["TC tórax",14],["TC coluna",8]], classif:[["Verde",20],["Amarelo",34],["Laranja",20],["Branco",2],["Azul",6],["Vermelho",2]]},
+    {n:"Ressonância", q:22, tkm:"R$ 535", sub:[["RM crânio",10],["RM coluna",7],["RM joelho",5]], classif:[["Verde",4],["Amarelo",8],["Laranja",6],["Branco",0],["Azul",3],["Vermelho",1]]},
+  ],
+  rtManchester:[["Verde",512],["Amarelo",98],["Laranja",14],["Branco",9],["Azul",8],["Vermelho",1]],
+  /* médicos por turno — tabela de diagnóstico (flags = onde tem oportunidade de melhorar) */
+  /* classif por médico na ordem [Vermelho, Laranja, Amarelo, Verde, Azul, Branco] */
+  turnos:{
+    manha:{label:"Manhã · 07–13h", medicos:[
+      {nome:"Dr. Rafael Nunes", atend:33, classif:[0,1,3,26,2,1], atendH:"2,4", espera:"62 min", lab:11, exames:17, medic:25, custo:275, sit:"atenção", flags:["atendH","espera"]},
+      {nome:"Dr. Otávio Lima", atend:41, classif:[0,2,5,30,3,1], atendH:"3,4", espera:"58 min", lab:15, exames:29, medic:44, custo:295, sit:"ofensor", flags:["espera","exames","medic"]},
+      {nome:"Dra. Marina Castro", atend:37, classif:[1,5,7,20,3,1], atendH:"3,1", espera:"55 min", lab:26, exames:38, medic:31, custo:341, sit:"atenção", flags:["lab","exames","custo"]},
+      {nome:"Dr. André Vasconcelos", atend:39, classif:[0,2,4,30,2,1], atendH:"3,3", espera:"49 min", lab:13, exames:30, medic:30, custo:340, sit:"atenção", flags:["custo"]},
+      {nome:"Dra. Beatriz Rocha", atend:45, classif:[0,3,6,33,2,1], atendH:"3,8", espera:"38 min", lab:12, exames:27, medic:28, custo:302, sit:"ok", flags:[]},
+    ]},
+    tarde:{label:"Tarde · 13–19h", medicos:[
+      {nome:"Dra. Camila Souza", atend:34, classif:[0,1,4,26,2,1], atendH:"2,9", espera:"62 min", lab:12, exames:16, medic:39, custo:273, sit:"atenção", flags:["espera","medic"]},
+      {nome:"Dr. Gustavo Teixeira", atend:36, classif:[0,2,5,26,2,1], atendH:"3,0", espera:"51 min", lab:14, exames:30, medic:30, custo:283, sit:"ok", flags:[]},
+      {nome:"Dra. Helena Prado", atend:40, classif:[1,3,5,28,2,1], atendH:"3,4", espera:"48 min", lab:13, exames:30, medic:30, custo:281, sit:"ok", flags:[]},
+    ]},
+    noturno:{label:"Noturno · 19–07h", medicos:[
+      {nome:"Dr. Otávio Lima", atend:22, classif:[0,2,3,15,1,1], atendH:"1,8", espera:"44 min", lab:14, exames:28, medic:40, custo:290, sit:"atenção", flags:["medic"]},
+      {nome:"Dra. Marina Castro", atend:18, classif:[1,2,3,10,1,1], atendH:"1,5", espera:"41 min", lab:27, exames:38, medic:22, custo:341, sit:"atenção", flags:["lab","exames"]},
+    ]},
+  },
+  /* detalhamento por patologia (CID): custo + exames daquele diagnóstico */
+  cidDetail:{
+    "J06":{tkm:"R$ 26", comp:[["Exames de imagem",0.8],["Laboratório",2.3],["Medicação",6.4],["Materiais",1.5]], exames:[
+      {n:"Laboratório",q:38,tkm:"R$ 19",sub:[["Hemograma",20],["PCR",18]]},
+      {n:"RX",q:14,tkm:"R$ 30",sub:[["RX seios da face",9],["RX tórax",5]]}]},
+    "R10":{tkm:"R$ 58", comp:[["Exames de imagem",16.0],["Laboratório",6.0],["Medicação",8.2],["Materiais",2.4]], exames:[
+      {n:"Ultrassom",q:52,tkm:"R$ 96",sub:[["USG abdome total",40],["USG vias urinárias",12]]},
+      {n:"Laboratório",q:60,tkm:"R$ 24",sub:[["Hemograma",28],["Amilase / Lipase",18],["Urina tipo I",14]]},
+      {n:"Tomografia",q:18,tkm:"R$ 267",sub:[["TC abdome",18]]}]},
+    "M54":{tkm:"R$ 41", comp:[["Exames de imagem",12.0],["Laboratório",2.0],["Medicação",7.0],["Materiais",2.0]], exames:[
+      {n:"RX",q:44,tkm:"R$ 33",sub:[["RX coluna lombar",30],["RX bacia",14]]},
+      {n:"Tomografia",q:8,tkm:"R$ 267",sub:[["TC coluna",8]]}]},
+    "R07":{tkm:"R$ 72", comp:[["Exames de imagem",8.0],["Laboratório",22.0],["Medicação",9.0],["Materiais",4.0]], exames:[
+      {n:"Laboratório",q:48,tkm:"R$ 40",sub:[["Troponina",30],["Hemograma",18]]},
+      {n:"ECG",q:52,tkm:"R$ 25",sub:[["ECG 12 derivações",52]]},
+      {n:"RX",q:20,tkm:"R$ 32",sub:[["RX tórax",20]]}]},
+    "S06":{tkm:"R$ 168", comp:[["Exames de imagem",115.0],["Laboratório",5.0],["Medicação",6.0],["Materiais",5.0]], exames:[
+      {n:"Tomografia",q:34,tkm:"R$ 290",sub:[["TC crânio",34]]},
+      {n:"RX",q:10,tkm:"R$ 32",sub:[["RX crânio",6],["RX coluna cervical",4]]}]},
+    "A09":{tkm:"R$ 24", comp:[["Exames de imagem",0.5],["Laboratório",4.0],["Medicação",8.5],["Materiais",3.0]], exames:[
+      {n:"Laboratório",q:30,tkm:"R$ 20",sub:[["Hemograma",16],["Eletrólitos",14]]}]},
+    "J18":{tkm:"R$ 96", comp:[["Exames de imagem",34.0],["Laboratório",14.0],["Medicação",22.0],["Materiais",8.0]], exames:[
+      {n:"RX",q:60,tkm:"R$ 34",sub:[["RX tórax",60]]},
+      {n:"Laboratório",q:58,tkm:"R$ 26",sub:[["Hemograma",30],["PCR",28]]},
+      {n:"Tomografia",q:12,tkm:"R$ 267",sub:[["TC tórax",12]]}]},
+    "N39":{tkm:"R$ 22", comp:[["Exames de imagem",0.5],["Laboratório",6.0],["Medicação",7.0],["Materiais",2.0]], exames:[
+      {n:"Laboratório",q:44,tkm:"R$ 21",sub:[["Urina tipo I",30],["Urocultura",14]]}]},
+    "R51":{tkm:"R$ 30", comp:[["Exames de imagem",8.0],["Laboratório",2.0],["Medicação",6.5],["Materiais",1.8]], exames:[
+      {n:"Tomografia",q:10,tkm:"R$ 290",sub:[["TC crânio",10]]},
+      {n:"Laboratório",q:20,tkm:"R$ 19",sub:[["Hemograma",20]]}]},
+  },
+
+  ctxInfo:{
+    global:{title:"CIDs — visão global", stat:"13.713 atendimentos · principais diagnósticos do período", tip:"Ponto de partida. Escolha um indicador ou uma caixa para filtrar os CIDs e formar a hipótese.", warn:false},
+    medicados:{title:"CIDs — pacientes medicados no PA", stat:"5.502 medicados (40,1%) · via EV 62% · VO 31% · IM 7%", tip:"⚠ Ofensor. A medicação concentra em CIDs de baixa complexidade (dor, GECA, ITU) — espaço para rever conduta nos verdes com os plantonistas.", warn:true},
+    lab:{title:"CIDs — solicitação de laboratório", stat:"994 solicitações (12,4% dos verdes)", tip:"Dentro da meta. Ver se algum CID puxa a solicitação acima do esperado.", warn:false},
+    exames:{title:"CIDs e tipos — exames de imagem", stat:"1.368 solicitações (17,1% dos verdes) · próximo do teto ≤20%", tip:"Estratifique por tipo: tomografia e ressonância puxam o custo mesmo com menor volume.", warn:false},
+    retorno:{title:"CIDs — retorno em 72h", stat:"425 retornos (4,26%)", tip:"Dentro da meta. Se um CID reincide muito, pode indicar alta precoce ou protocolo a revisar.", warn:false},
+    internacao:{title:"CIDs — conversão para internação", stat:"49 internações (0,61%) · UTI 14 · enfermaria 35", tip:"⚠ Em risco (meta ≤0,50%). Ver diagnósticos que mais internam e o destino.", warn:true},
+    espera:{title:"Tempo médio de espera por classificação", stat:"13.713 atendimentos · média PAA 00:08 · PAC 00:12", tip:"Cruze o volume (à esquerda) com o tempo (aqui): se o tempo sobe sem subir volume nem complexidade, o gargalo é de fluxo/escala, não de demanda.", warn:false},
+    custo:{title:"CIDs — visão global (custo)", stat:"Custo total R$ 427.842 · ticket médio R$ 43,95", tip:"Dentro da meta. Cruze com exames de imagem (tomografia/ressonância) para achar o que puxa o custo.", warn:false},
+  },
+
+  ranking:[ // do pior para o melhor
+    ["Dr. Otávio Lima",59,"5,0%","48%","28,8%","R$ 295","61 min","crítico","out"],
+    ["Dra. Marina Castro",60,"3,9%","44%","38,3%","R$ 341","58 min","atenção","risk"],
+    ["Dr. André Vasconcelos",66,"5,1%","41%","30,3%","R$ 340","49 min","atenção","risk"],
+    ["Dra. Camila Souza",61,"6,8%","39%","16,4%","R$ 273","62 min","atenção","risk"],
+    ["Dra. Beatriz Rocha",64,"4,0%","42%","28,1%","R$ 302","55 min","ok","in"],
+    ["Dra. Helena Prado",63,"3,2%","36%","30,2%","R$ 281","53 min","ok","in"],
+    ["Dr. Gustavo Teixeira",50,"4,6%","44%","30,0%","R$ 283","51 min","ok","in"],
+    ["Dr. Rafael Nunes",54,"4,1%","37%","16,7%","R$ 275","57 min","bom","in"],
+  ],
+
+  /* dados das páginas de drill (próximas) */
+  fila:[["#A-2043","Amarelo","var(--amarelo)","R07 · Dor torácica","01:12","não"],["#A-2051","Verde","var(--verde)","J06 · IVAS","00:26","não"],["#A-2049","Verde","var(--verde)","M54 · Lombalgia","00:41","sim"],["#A-2055","Laranja","var(--laranja)","R55 · Síncope","00:09","não"],["#A-2038","Azul","var(--azul)","Z00 · Avaliação","01:03","não"]],
+  etapasOrdem:["Triagem","Recepção","Atend. médico","Exames complementares","Reavaliação","Aguardando leito"],
+  /* pacientes: [código, cor, CID, etapa, espTriagemMed, medDesfecho, imagem, lab, medicado, retorno72h, internação, custo, médico] (tempos em min; "—" quando não se aplica) */
+  pacientes:[
+    ["#A-2060","Vermelho","I21 · IAM","Atend. médico",4,"—",2,3,"Sim","Não","UTI",890,"Dr. Otávio Lima"],
+    ["#A-2043","Amarelo","R07 · Dor torácica","Atend. médico",8,"—",1,2,"Sim","Não","—",138,"Dr. Otávio Lima"],
+    ["#A-2055","Laranja","R55 · Síncope","Atend. médico",5,"—",1,1,"Sim","Não","—",96,"Dra. Helena Prado"],
+    ["#A-2049","Verde","M54 · Lombalgia","Exames complementares",7,22,1,0,"Sim","Sim","—",41,"Dr. Gustavo Teixeira"],
+    ["#A-2051","Verde","J06 · IVAS","Reavaliação",9,40,0,1,"Sim","Não","—",34,"Dra. Camila Souza"],
+    ["#A-2052","Verde","A09 · GECA","Reavaliação",6,34,0,1,"Sim","Não","—",24,"Dr. Gustavo Teixeira"],
+    ["#A-2058","Verde","R51 · Cefaleia","Reavaliação",12,31,1,0,"Sim","Não","—",290,"Dra. Helena Prado"],
+    ["#A-2033","Laranja","J18 · Pneumonia","Aguardando leito",12,95,1,2,"Sim","Não","Enfermaria",410,"Dra. Helena Prado"],
+    ["#A-2044","Amarelo","N39 · ITU","Aguardando leito",28,60,0,2,"Sim","Não","Enfermaria",62,"Dra. Camila Souza"],
+    ["#A-2038","Azul","Z00 · Avaliação","Triagem","—","—",0,0,"Não","Não","—",0,"—"],
+    ["#A-2062","Verde","J06 · IVAS","Triagem","—","—",0,0,"Não","Não","—",0,"—"],
+    ["#A-2064","Amarelo","R10 · Dor abdominal","Recepção","—","—",0,0,"Não","Não","—",0,"—"],
+  ],
+  funil:[["Chegada / senha",1000,"—"],["Abertura de ficha",980,"04 min"],["Triagem",940,"07 min"],["Atendimento médico",905,"08 min"],["Reavaliação",410,"34 min"],["Desfecho",900,"—"]],
+  medicos:[["Dr. André Vasconcelos",66,"49 min","45,5%","30,3%","R$ 340","5,1%",["imagem","custo"]],["Dra. Beatriz Rocha",64,"55 min","46,9%","28,1%","R$ 302","4,0%",["lab"]],["Dra. Helena Prado",63,"53 min","33,3%","30,2%","R$ 281","3,2%",["imagem"]],["Dra. Camila Souza",61,"62 min","39,3%","16,4%","R$ 273","6,8%",["retorno","espera"]],["Dra. Marina Castro",60,"58 min","45,0%","38,3%","R$ 341","3,9%",["imagem","custo"]],["Dr. Otávio Lima",59,"61 min","42,4%","28,8%","R$ 295","5,0%",["imagem","espera"]],["Dr. Rafael Nunes",54,"57 min","37,0%","16,7%","R$ 275","4,1%",[]],["Dr. Gustavo Teixeira",50,"51 min","44,0%","30,0%","R$ 283","4,6%",["imagem"]]],
+  boletim:[["Atendimentos/hora","2,4","2,3","+0,1","in"],["Espera após triagem","61 min","56 min","+5 min","risk"],["% exames imagem","28,8%","24,1%","+4,7 p.p.","out"],["% exames laboratório","42,4%","41,5%","+0,9 p.p.","risk"],["Custo por atendimento","R$ 295","R$ 299","−R$ 4","in"],["Retorno em 72h","5,0%","4,6%","+0,4 p.p.","risk"]],
+  comp:[["Tempo de espera no PA","52 min","08 min","−85%"],["Atendimentos/mês","8.330","9.964","+19,6%"],["Horas médicas contratadas","base","−13,7%","−13,7%"],["Custo mensal","base","−15%","−15%"],["Pontuação do contrato","—","1.825/2.000","novo"]],
+  /* ===== Comparativo dos médicos ===== */
+  heatCols:["Atend/h","Espera","% Lab","% Imagem","% Medic","% Internação","Retorno","Custo"],
+  heatMedicos:[
+    {n:"Dr. Otávio Lima", c:[["3,4","in"],["61 min","out"],["15%","in"],["29%","out"],["44%","out"],["0,7%","out"],["5,0%","in"],["R$ 295","risk"]]},
+    {n:"Dra. Marina Castro", c:[["3,1","in"],["55 min","out"],["26%","risk"],["38%","out"],["31%","risk"],["0,4%","in"],["3,9%","in"],["R$ 341","out"]]},
+    {n:"Dr. André Vasconcelos", c:[["3,3","in"],["49 min","in"],["13%","in"],["30%","out"],["30%","risk"],["0,5%","risk"],["5,1%","in"],["R$ 340","out"]]},
+    {n:"Dra. Camila Souza", c:[["2,9","risk"],["62 min","out"],["12%","in"],["16%","in"],["39%","out"],["0,3%","in"],["6,8%","risk"],["R$ 273","in"]]},
+    {n:"Dra. Beatriz Rocha", c:[["3,8","in"],["38 min","in"],["12%","in"],["27%","risk"],["28%","in"],["0,4%","in"],["4,0%","in"],["R$ 302","risk"]]},
+    {n:"Dr. Rafael Nunes", c:[["2,4","out"],["62 min","out"],["11%","in"],["17%","in"],["25%","in"],["0,5%","risk"],["4,1%","in"],["R$ 275","in"]]},
+  ],
+  /* Boletim por médico: ind=[indicador, meta, você, média equipe, delta, situação] */
+  boletimMed:{
+    "Dr. Otávio Lima":{ind:[
+      ["Espera após a triagem","≤ 00:50","01:01","00:56","+05 min","out"],
+      ["Pacientes medicados no PA","≤ 30%","44%","35%","+9 p.p.","out"],
+      ["Solicitação de laboratório","≤ 25%","15%","13%","+2 p.p.","in"],
+      ["Solicitação de imagem","≤ 20%","29%","24%","+5 p.p.","out"],
+      ["Conversão para internação","≤ 0,50%","0,70%","0,50%","+0,2 p.p.","risk"],
+      ["Retorno em 72h","≤ 10%","5,0%","4,6%","+0,4 p.p.","in"],
+      ["Custo por atendimento","≤ R$ 48,00","R$ 51,20","R$ 46,00","+R$ 5,20","out"],
+    ], apoio:[["Atendimentos","41","38"],["Atend/hora","3,4","3,2"],["Espera até médico","01:01","00:56"],["Custo/atend.","R$ 51,20","R$ 46,00"]],
+      resumo:"Oportunidades: <b>solicitação de imagem</b> (29% vs meta ≤20%) e <b>medicação em verdes</b> (44% vs ≤30%) acima da meta e da média da equipe. Ritmo bom (atend/h 3,4, acima da média). Pequenos ajustes de conduta aproximam você da meta contratual."},
+    "Dra. Marina Castro":{ind:[
+      ["Espera após a triagem","≤ 00:50","00:55","00:56","−01 min","out"],
+      ["Pacientes medicados no PA","≤ 30%","31%","35%","−4 p.p.","risk"],
+      ["Solicitação de laboratório","≤ 25%","26%","13%","+13 p.p.","risk"],
+      ["Solicitação de imagem","≤ 20%","38%","24%","+14 p.p.","out"],
+      ["Conversão para internação","≤ 0,50%","0,40%","0,50%","−0,1 p.p.","in"],
+      ["Retorno em 72h","≤ 10%","3,9%","4,6%","−0,7 p.p.","in"],
+      ["Custo por atendimento","≤ R$ 48,00","R$ 52,80","R$ 46,00","+R$ 6,80","out"],
+    ], apoio:[["Atendimentos","37","38"],["Atend/hora","3,1","3,2"],["Espera até médico","00:55","00:56"],["Custo/atend.","R$ 52,80","R$ 46,00"]],
+      resumo:"Você atende alta complexidade (justifica parte da espera), mas <b>imagem</b> (38%) e <b>custo</b> estão acima da meta. Oportunidade: alinhar o protocolo de solicitação de imagem."},
+    "Dr. André Vasconcelos":{ind:[
+      ["Espera após a triagem","≤ 00:50","00:49","00:56","−07 min","in"],
+      ["Pacientes medicados no PA","≤ 30%","30%","35%","−5 p.p.","risk"],
+      ["Solicitação de laboratório","≤ 25%","13%","13%","0 p.p.","in"],
+      ["Solicitação de imagem","≤ 20%","30%","24%","+6 p.p.","out"],
+      ["Conversão para internação","≤ 0,50%","0,50%","0,50%","0 p.p.","risk"],
+      ["Retorno em 72h","≤ 10%","5,1%","4,6%","+0,5 p.p.","in"],
+      ["Custo por atendimento","≤ R$ 48,00","R$ 50,10","R$ 46,00","+R$ 4,10","out"],
+    ], apoio:[["Atendimentos","39","38"],["Atend/hora","3,3","3,2"],["Espera até médico","00:49","00:56"],["Custo/atend.","R$ 50,10","R$ 46,00"]],
+      resumo:"Boa espera (abaixo da meta). Oportunidade pontual em <b>imagem</b> e <b>custo</b>, levemente acima da meta."},
+    "Dra. Camila Souza":{ind:[
+      ["Espera após a triagem","≤ 00:50","01:02","00:56","+06 min","out"],
+      ["Pacientes medicados no PA","≤ 30%","39%","35%","+4 p.p.","out"],
+      ["Solicitação de laboratório","≤ 25%","12%","13%","−1 p.p.","in"],
+      ["Solicitação de imagem","≤ 20%","16%","24%","−8 p.p.","in"],
+      ["Conversão para internação","≤ 0,50%","0,30%","0,50%","−0,2 p.p.","in"],
+      ["Retorno em 72h","≤ 10%","6,8%","4,6%","+2,2 p.p.","risk"],
+      ["Custo por atendimento","≤ R$ 48,00","R$ 45,80","R$ 46,00","−R$ 0,20","in"],
+    ], apoio:[["Atendimentos","34","38"],["Atend/hora","2,9","3,2"],["Espera até médico","01:02","00:56"],["Custo/atend.","R$ 45,80","R$ 46,00"]],
+      resumo:"Baixo uso de imagem e custo controlado. Oportunidades: <b>espera</b>, <b>medicação em verdes</b> e <b>retorno em 72h</b> acima da média — revisar conduta e critério de alta."},
+    "Dra. Beatriz Rocha":{ind:[
+      ["Espera após a triagem","≤ 00:50","00:38","00:56","−18 min","in"],
+      ["Pacientes medicados no PA","≤ 30%","28%","35%","−7 p.p.","in"],
+      ["Solicitação de laboratório","≤ 25%","12%","13%","−1 p.p.","in"],
+      ["Solicitação de imagem","≤ 20%","27%","24%","+3 p.p.","risk"],
+      ["Conversão para internação","≤ 0,50%","0,40%","0,50%","−0,1 p.p.","in"],
+      ["Retorno em 72h","≤ 10%","4,0%","4,6%","−0,6 p.p.","in"],
+      ["Custo por atendimento","≤ R$ 48,00","R$ 47,20","R$ 46,00","+R$ 1,20","risk"],
+    ], apoio:[["Atendimentos","45","38"],["Atend/hora","3,8","3,2"],["Espera até médico","00:38","00:56"],["Custo/atend.","R$ 47,20","R$ 46,00"]],
+      resumo:"<b>Referência positiva:</b> melhor espera e bom ritmo, com clínicos dentro da meta. Único ponto de atenção: imagem levemente acima. Ótimo benchmark para a equipe."},
+    "Dr. Rafael Nunes":{ind:[
+      ["Espera após a triagem","≤ 00:50","01:02","00:56","+06 min","out"],
+      ["Pacientes medicados no PA","≤ 30%","25%","35%","−10 p.p.","in"],
+      ["Solicitação de laboratório","≤ 25%","11%","13%","−2 p.p.","in"],
+      ["Solicitação de imagem","≤ 20%","17%","24%","−7 p.p.","in"],
+      ["Conversão para internação","≤ 0,50%","0,50%","0,50%","0 p.p.","risk"],
+      ["Retorno em 72h","≤ 10%","4,1%","4,6%","−0,5 p.p.","in"],
+      ["Custo por atendimento","≤ R$ 48,00","R$ 45,00","R$ 46,00","−R$ 1,00","in"],
+    ], apoio:[["Atendimentos","33","38"],["Atend/hora","2,4","3,2"],["Espera até médico","01:02","00:56"],["Custo/atend.","R$ 45,00","R$ 46,00"]],
+      resumo:"Indicadores clínicos e de custo bons. Ponto de atenção: <b>espera alta com atend/h baixo (2,4)</b> e baixa complexidade — foco em ritmo/fluxo, não em conduta."},
+  },
+  /* tabela detalhada: at geral · cl[6] · esp · med[VO,IM,EV] administrações · medp % medicados · lab · img[geral,RX,US,TC] · ret · int · tkm · tkmc[med,lab,img,RX,US,TC] */
+  medDetalhe:[
+    {n:"Dr. Otávio Lima", at:41, cl:[0,2,5,30,3,1], esp:61, med:[22,6,14], medp:44, lab:6, img:[12,6,3,3], ret:"5,0%", int:"0,7%", tkm:295, tkmc:[9,20,42,32,96,267]},
+    {n:"Dra. Marina Castro", at:37, cl:[1,5,7,20,3,1], esp:55, med:[15,5,10], medp:31, lab:10, img:[14,4,4,6], ret:"3,9%", int:"0,4%", tkm:341, tkmc:[10,22,55,32,96,290]},
+    {n:"Dr. André Vasconcelos", at:39, cl:[0,2,4,30,2,1], esp:49, med:[16,4,11], medp:30, lab:5, img:[12,5,4,3], ret:"5,1%", int:"0,5%", tkm:340, tkmc:[9,19,48,32,96,267]},
+    {n:"Dra. Camila Souza", at:34, cl:[0,1,4,26,2,1], esp:62, med:[20,3,16], medp:39, lab:4, img:[5,3,2,0], ret:"6,8%", int:"0,3%", tkm:273, tkmc:[10,18,30,32,96,0]},
+    {n:"Dra. Beatriz Rocha", at:45, cl:[0,3,6,33,2,1], esp:38, med:[14,3,11], medp:28, lab:5, img:[10,5,3,2], ret:"4,0%", int:"0,4%", tkm:302, tkmc:[8,20,40,32,96,267]},
+    {n:"Dr. Rafael Nunes", at:33, cl:[0,1,3,26,2,1], esp:62, med:[11,2,12], medp:25, lab:4, img:[4,3,1,0], ret:"4,1%", int:"0,5%", tkm:275, tkmc:[8,18,32,32,96,0]},
+  ],
+  heatHoraCols:["Manhã","Tarde","Noite"],
+  heatHora:[
+    {n:"Dr. Otávio Lima", v:[41,34,22]},
+    {n:"Dra. Marina Castro", v:[37,30,18]},
+    {n:"Dr. André Vasconcelos", v:[39,32,20]},
+    {n:"Dra. Camila Souza", v:[36,34,19]},
+    {n:"Dra. Beatriz Rocha", v:[45,38,24]},
+    {n:"Dr. Rafael Nunes", v:[33,31,26]},
+  ],
+  compPeriodos:["jun/2026","jul/2026","ago/2026"],
+  compMedicos:{
+    "Dr. Otávio Lima":{ind:[["Atend/hora",["3,1","3,2","3,4"],"melhora"],["Espera",["54 min","57 min","61 min"],"piora"],["% Lab",["13%","14%","15%"],"piora"],["% Imagem",["25%","27%","29%"],"piora"],["% Medicados",["38%","41%","44%"],"piora"],["Conversão internação",["0,5%","0,6%","0,7%"],"piora"],["Retorno 72h",["4,8%","4,9%","5,0%"],"estavel"],["Custo",["R$ 280","R$ 288","R$ 295"],"piora"]], resumo:"<b>Dr. Otávio Lima · ago/2026 — ofensor do turno da manhã.</b> Espera, % imagem, % medicados e custo em <b style='color:var(--red)'>piora</b> nos últimos 3 meses. Ponto forte: bom ritmo (atend/h 3,4, em melhora). Oportunidade: rever solicitação de imagem e conduta de medicação nos verdes. <b>Ação sugerida:</b> conversa de conduta com o coordenador · prazo 20/09."},
+    "Dra. Marina Castro":{ind:[["Atend/hora",["3,0","3,1","3,1"],"estavel"],["Espera",["50 min","52 min","55 min"],"piora"],["% Lab",["22%","24%","26%"],"piora"],["% Imagem",["34%","36%","38%"],"piora"],["% Medicados",["30%","31%","31%"],"estavel"],["Conversão internação",["0,4%","0,4%","0,4%"],"estavel"],["Retorno 72h",["4,1%","4,0%","3,9%"],"melhora"],["Custo",["R$ 330","R$ 336","R$ 341"],"piora"]], resumo:"<b>Dra. Marina Castro · ago/2026.</b> Atende alta complexidade (justifica parte da espera), mas <b style='color:var(--red)'>% imagem e custo em piora</b>. Oportunidade: protocolo de solicitação de imagem. <b>Ação sugerida:</b> alinhar critério de imagem · prazo 22/09."},
+    "Dr. Rafael Nunes":{ind:[["Atend/hora",["2,8","2,6","2,4"],"piora"],["Espera",["55 min","58 min","62 min"],"piora"],["% Lab",["11%","11%","11%"],"estavel"],["% Imagem",["17%","17%","17%"],"estavel"],["% Medicados",["25%","25%","25%"],"estavel"],["Conversão internação",["0,5%","0,5%","0,5%"],"estavel"],["Retorno 72h",["4,0%","4,1%","4,1%"],"estavel"],["Custo",["R$ 272","R$ 274","R$ 275"],"estavel"]], resumo:"<b>Dr. Rafael Nunes · ago/2026.</b> <b style='color:var(--red)'>Atend/h caindo (2,4) com espera subindo</b> e baixa complexidade — sinal de ritmo, não de demanda. Indicadores clínicos ok. <b>Ação sugerida:</b> conversa de ritmo/fluxo com o coordenador · prazo 18/09."},
+    "Dr. André Vasconcelos":{ind:[["Atend/hora",["3,2","3,3","3,3"],"estavel"],["Espera",["50 min","49 min","49 min"],"estavel"],["% Lab",["13%","13%","13%"],"estavel"],["% Imagem",["28%","29%","30%"],"piora"],["% Medicados",["30%","30%","30%"],"estavel"],["Conversão internação",["0,5%","0,5%","0,5%"],"estavel"],["Retorno 72h",["5,0%","5,1%","5,1%"],"estavel"],["Custo",["R$ 330","R$ 335","R$ 340"],"piora"]], resumo:"<b>Dr. André Vasconcelos · ago/2026.</b> % imagem e custo em leve piora. Demais estáveis. <b>Ação sugerida:</b> monitorar imagem no próximo ciclo."},
+    "Dra. Camila Souza":{ind:[["Atend/hora",["3,0","3,0","2,9"],"estavel"],["Espera",["58 min","60 min","62 min"],"piora"],["% Lab",["12%","12%","12%"],"estavel"],["% Imagem",["16%","16%","16%"],"estavel"],["% Medicados",["36%","38%","39%"],"piora"],["Conversão internação",["0,3%","0,3%","0,3%"],"estavel"],["Retorno 72h",["6,5%","6,7%","6,8%"],"piora"],["Custo",["R$ 270","R$ 272","R$ 273"],"estavel"]], resumo:"<b>Dra. Camila Souza · ago/2026.</b> Espera, % medicados e retorno em piora. Oportunidade: conduta de medicação e revisão de altas (retorno). <b>Ação sugerida:</b> alinhar conduta · prazo 25/09."},
+    "Dra. Beatriz Rocha":{ind:[["Atend/hora",["3,6","3,7","3,8"],"melhora"],["Espera",["42 min","40 min","38 min"],"melhora"],["% Lab",["12%","12%","12%"],"estavel"],["% Imagem",["27%","27%","27%"],"estavel"],["% Medicados",["28%","28%","28%"],"estavel"],["Conversão internação",["0,4%","0,4%","0,4%"],"estavel"],["Retorno 72h",["4,2%","4,1%","4,0%"],"melhora"],["Custo",["R$ 300","R$ 301","R$ 302"],"estavel"]], resumo:"<b>Dra. Beatriz Rocha · ago/2026 — referência positiva.</b> Melhor ritmo e menor espera, com clínicos estáveis. Bom benchmark para a equipe."},
+  },
+};
+
+const spill={in:"s-in",risk:"s-risk",out:"s-out"};
+const stxt={in:"dentro",risk:"em risco",out:"fora"};
+function cssv(v){return (typeof v==='string'&&v.startsWith("var("))? getComputedStyle(document.documentElement).getPropertyValue(v.slice(4,-1)).trim() : v;}
+
+/* barras horizontais genéricas: rows=[nome, valor, (label direita opcional)] */
+function bars(el, rows, opts){
+  opts=opts||{}; const max=Math.max(...rows.map(r=>r[1]));
+  el.innerHTML=rows.map(r=>{
+    const color=opts.color?opts.color(r):'var(--teal)';
+    const nameW=opts.nameW||150;
+    const right=opts.right?opts.right(r):r[1].toLocaleString('pt-BR');
+    return `<div class="bar-h"><div class="name" style="width:${nameW}px">${r[0]}</div><div class="track"><div class="fill" style="width:${(r[1]/max*100).toFixed(1)}%;background:${cssv(color)}"></div></div><div class="n">${right}</div></div>`;
+  }).join('');
+}
+/* Barras por classificação de risco (cor por nome): rows=[classificação, valor] */
+const CORCLASS={Verde:'var(--verde)',Amarelo:'var(--amarelo)',Laranja:'var(--laranja)',Branco:'var(--branco)',Azul:'var(--azul)',Vermelho:'var(--vermelho)'};
+function classifBars(el, rows, mode){
+  const max=Math.max(...rows.map(r=>r[1])), tot=rows.reduce((a,r)=>a+r[1],0);
+  el.innerHTML=rows.map(r=>{
+    const right = mode==='min' ? (r[1]+' min') : (r[1].toLocaleString('pt-BR')+' · '+(tot?Math.round(r[1]/tot*100):0)+'%');
+    return `<div class="bar-h"><div class="name" style="width:90px">${r[0]}</div><div class="track"><div class="fill" style="width:${(r[1]/max*100).toFixed(1)}%;background:${cssv(CORCLASS[r[0]]||'var(--teal)')}"></div></div><div class="n">${right}</div></div>`;
+  }).join('');
+}
+
+/* ---------- Pontuação + farol ---------- */
+(function(){
+  const p=DADOS.pontuacao, $=id=>document.getElementById(id);
+  $('monit-periodo').textContent=p.periodo+" · matriz consolidada (PAA + PAC)";
+  $('monit-score').innerHTML=p.total.toLocaleString('pt-BR')+"<small> / "+p.max.toLocaleString('pt-BR')+" pontos</small>";
+  $('monit-paa').textContent=p.paa+" de "+p.paaMax;
+  $('monit-pac').textContent=p.pac+" de "+p.pacMax;
+  $('monit-vig').textContent=p.vig;
+  const f=DADOS.farol, t=p.max;
+  $('monit-farol').innerHTML=`<i style="width:${f.garantidos/t*100}%;background:var(--green)"></i><i style="width:${f.risco/t*100}%;background:var(--amber)"></i><i style="width:${f.perdido/t*100}%;background:var(--red)"></i>`;
+})();
+
+/* ---------- KPIs de apoio ---------- */
+function renderKpis(view){
+  const key=view==='paa'?'paa':(view==='pac'?'pac':'geral');
+  document.getElementById('monit-kpis').innerHTML=DADOS.kpis.map(k=>{
+    const stcls=k.st?(' kpi-'+k.st):'';
+    const stlbl=k.st==='out'?' · <b style="color:var(--red)">fora</b>':(k.st==='risk'?' · <b style="color:var(--amber)">em risco</b>':'');
+    return `<div class="card kpi2${stcls}"><div class="lab">${k.lab}</div><div class="val2">${k[key]}</div><div class="ex">${k.ex}${stlbl}</div></div>`;
+  }).join('');
+}
+
+/* ---------- Semáforo ---------- */
+const TIER={out:0,risk:1,in:2}, TIERNOME=["Mínima","Mediana","Máxima"], FKEY=["min","med","max"];
+function renderSemaforo(arr){
+  const tb=document.getElementById('tb-monit-sem');
+  tb.innerHTML="<thead><tr><th>Indicador</th><th>Meta</th><th>Resultado</th><th>Faixa</th><th>Pontos</th><th>Situação</th></tr></thead><tbody>"+
+   arr.map(i=>{
+     const ti=TIER[i[7]], fv=i[9]||{};
+     const steps=[0,1,2].map(n=>`<span class="st3 ${n===ti?('on-'+i[7]):''}" data-fn="${TIERNOME[n]}" data-v="${(fv[FKEY[n]]||'—').replace(/"/g,'&quot;')}"></span>`).join('');
+     return `<tr class="row-click ${i[7]=='out'?'ofensor':''}" data-ctx="${i[8]}"><td><b>${i[0]}</b></td><td>${i[1]}</td><td>${i[2]}</td><td><div class="steps3">${steps}</div><span class="frange"><b>${TIERNOME[ti]}</b> · ${fv[FKEY[ti]]||'—'}</span></td><td class="pts">${i[5]}/${i[6]}</td><td><span class="status-pill ${spill[i[7]]}">${stxt[i[7]]}</span></td></tr>`;
+   }).join('')+"</tbody>";
+  tb.querySelectorAll('tbody tr').forEach(tr=>tr.addEventListener('click',()=>renderDrill(tr.dataset.ctx)));
+  tb.querySelectorAll('.st3').forEach(s=>s.addEventListener('click',e=>{
+    e.stopPropagation();
+    const td=s.closest('td');
+    td.querySelectorAll('.st3').forEach(x=>x.classList.remove('sel')); s.classList.add('sel');
+    td.querySelector('.frange').innerHTML=`<b>${s.dataset.fn}</b> · ${s.dataset.v}`;
+  }));
+}
+
+/* ---------- Chips ---------- */
+document.getElementById('drill-chips').innerHTML=DADOS.chips.map(c=>
+ `<div class="chip-box" data-ctx="${c[0]}"><span class="ic">${c[2]}</span>${c[1]}</div>`).join('');
+document.querySelectorAll('#drill-chips .chip-box').forEach(c=>c.addEventListener('click',()=>renderDrill(c.dataset.ctx)));
+
+/* ---------- Drill-down ---------- */
+let currentCtx='global';
+/* contextos com estratificação (CIDs + top 5 do recorte) */
+const STRAT={
+  medicados:{cidLabel:"Top 5 CIDs medicados", stratLabel:"Top 5 medicamentos prescritos", get strat(){return DADOS.medTop}, right:r=>r[1].toLocaleString('pt-BR')},
+  lab:{cidLabel:"Top 5 CIDs que solicitam laboratório", stratLabel:"Top 5 exames de laboratório solicitados", get strat(){return DADOS.labTop}, right:r=>r[1].toLocaleString('pt-BR')},
+  exames:{cidLabel:"Top 5 CIDs que solicitam imagem", stratLabel:"Top 5 exames de imagem (por tipo)", get strat(){return DADOS.exameTipo}, right:r=>r[2]},
+};
+function renderDrill(ctx){
+  currentCtx=ctx;
+  document.querySelectorAll('#drill-chips .chip-box').forEach(c=>c.classList.toggle('active', c.dataset.ctx===ctx));
+  document.querySelectorAll('#tb-monit-sem tbody tr').forEach(tr=>tr.classList.toggle('row-active', tr.dataset.ctx===ctx));
+  /* painel esquerdo (classificação) sensível ao contexto */
+  const ci=DADOS.classifInfo[ctx]||DADOS.classifInfo.global;
+  document.getElementById('classif-title').textContent=ci[0];
+  document.getElementById('classif-sub').textContent=ci[1];
+  classifBars(document.getElementById('monit-manch'), DADOS.classif[ctx]||DADOS.classif.global, 'qtd');
+  /* painel direito */
+  const info=DADOS.ctxInfo[ctx]||DADOS.ctxInfo.global;
+  document.getElementById('drill-title').textContent=info.title;
+  document.getElementById('drill-stat').textContent=info.stat;
+  const tip=document.getElementById('drill-tip'); tip.innerHTML=info.tip; tip.className='callout'+(info.warn?' warn':'');
+  const el=document.getElementById('drill-bars');
+  if(ctx==='espera'){ classifBars(el, DADOS.esperaTempo, 'min'); }
+  else if(STRAT[ctx]){
+    const s=STRAT[ctx]; el.innerHTML='';
+    const h1=document.createElement('div'); h1.className='mini'; h1.style.margin='0 0 6px'; h1.innerHTML='<b>'+s.cidLabel+'</b>'; el.appendChild(h1);
+    const d1=document.createElement('div'); bars(d1, DADOS.cids[ctx], {nameW:150}); el.appendChild(d1);
+    const h2=document.createElement('div'); h2.className='mini'; h2.style.margin='14px 0 6px'; h2.innerHTML='<b>'+s.stratLabel+'</b>'; el.appendChild(h2);
+    const d2=document.createElement('div'); bars(d2, s.strat, {nameW:150, color:()=>'var(--amber)', right:s.right}); el.appendChild(d2);
+  } else { bars(el, DADOS.cids[ctx]||DADOS.cids.global, {nameW:150}); }
+}
+
+/* ---------- Ranking médicos ---------- */
+document.getElementById('tb-rank').innerHTML=
+ "<thead><tr><th>#</th><th>Médico</th><th>Atend.</th><th>Retorno 72h</th><th>% Medicados</th><th>% Imagem</th><th>Custo méd.</th><th>Espera</th><th>Situação</th></tr></thead><tbody>"+
+ DADOS.ranking.map((m,idx)=>`<tr class="${m[8]=='out'?'ofensor':''}"><td class="pts">${idx+1}º</td><td><b>${m[0]}</b></td><td>${m[1]}</td><td>${m[2]}</td><td>${m[3]}</td><td>${m[4]}</td><td>${m[5]}</td><td>${m[6]}</td><td><span class="status-pill ${spill[m[8]]}">${m[7]}</span></td></tr>`).join('')+
+ "</tbody>";
+
+/* ---------- Toggle Geral/PAA/PAC ---------- */
+document.querySelectorAll('.toggle button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.toggle button').forEach(x=>x.classList.remove('on')); b.classList.add('on');
+  renderSemaforo(b.dataset.v==='pac'?DADOS.indicadoresPAC:DADOS.indicadores);
+  renderKpis(b.dataset.v);
+  renderDrill(currentCtx);
+}));
+
+/* ===== TEMPO REAL ===== */
+function comboChart(el, bars, line, barColor){
+  bars=bars||DADOS.rtHoras; line=line||DADOS.esperaMedico;
+  const bc=barColor?cssv(barColor):'#1c3a54';   // cor das barras (classificação filtrada ou navy padrão)
+  const W=980,H=260,ml=42,mr=14,mt=24,mb=26, pw=W-ml-mr, ph=H-mt-mb, slot=pw/24;
+  const barHeadroom=1.6; // >1 deixa as barras mais baixas, afastando a linha das colunas
+  const META=50;         // meta de espera (min)
+  const maxB=(Math.max(...bars)||1)*barHeadroom, maxL=60; // régua fixa até 60 min (meta 50)
+  const bx=i=>ml+i*slot, cx=i=>ml+i*slot+slot/2, by=v=>mt+ph-(v/maxB*ph), ly=v=>mt+ph-(v/maxL*ph);
+  let now=12; try{now=new Date().getHours();}catch(e){}
+  // régua lateral (minutos) + linhas de grade
+  let grid='', yax='';
+  for(let t=0;t<=maxL;t+=10){ const y=ly(t); grid+=`<line x1="${ml}" y1="${y.toFixed(1)}" x2="${W-mr}" y2="${y.toFixed(1)}" stroke="#eef1f5" stroke-width="1"/>`; yax+=`<text x="${ml-7}" y="${(y+3).toFixed(1)}" font-size="9" fill="#9aa7b5" text-anchor="end">${t}</text>`; }
+  yax+=`<text x="${ml-7}" y="${(mt-9).toFixed(1)}" font-size="9" fill="#9aa7b5" text-anchor="end">min</text>`;
+  const metaLine=`<line x1="${ml}" y1="${ly(META).toFixed(1)}" x2="${W-mr}" y2="${ly(META).toFixed(1)}" stroke="#55606e" stroke-width="1.2" stroke-dasharray="5 3"/><text x="${W-mr}" y="${(ly(META)-4).toFixed(1)}" font-size="9" fill="#55606e" text-anchor="end">meta ${META} min</text>`;
+  // barras: passado sólido, hora atual teal, futuro azul-marinho mais opaco
+  const rects=bars.map((v,i)=>{const fill=(i===now&&!barColor)?'#12a3a0':bc, op=i>now?'0.30':'1';
+    return `<rect x="${(bx(i)+slot*0.16).toFixed(1)}" y="${by(v).toFixed(1)}" width="${(slot*0.68).toFixed(1)}" height="${(mt+ph-by(v)).toFixed(1)}" rx="2" fill="${fill}" fill-opacity="${op}"><title>${String(i).padStart(2,'0')}h · ${v} atendimentos</title></rect>`;}).join('');
+  // número de atendimentos, sutil, acima da barra
+  const nums=bars.map((v,i)=>`<text x="${cx(i).toFixed(1)}" y="${(by(v)-4).toFixed(1)}" font-size="8" fill="#9aa7b5" text-anchor="middle">${v}</text>`).join('');
+  // linha de espera + bolinhas com tooltip
+  const poly=`<polyline fill="none" stroke="#12a3a0" stroke-width="2.4" points="${line.map((v,i)=>cx(i).toFixed(1)+','+ly(v).toFixed(1)).join(' ')}"/>`;
+  const dots=line.map((v,i)=>`<circle cx="${cx(i).toFixed(1)}" cy="${ly(v).toFixed(1)}" r="3.4" fill="#12a3a0" style="cursor:pointer"><title>${String(i).padStart(2,'0')}h · espera até médico: ${v} min</title></circle>`).join('');
+  const nowM=`<line x1="${cx(now).toFixed(1)}" y1="${mt}" x2="${cx(now).toFixed(1)}" y2="${mt+ph}" stroke="#d1495b" stroke-width="1.5" stroke-dasharray="4 3"/><text x="${cx(now).toFixed(1)}" y="${(mt-9).toFixed(1)}" font-size="10" fill="#d1495b" text-anchor="middle">agora ${String(now).padStart(2,'0')}h</text>`;
+  const xl=[0,3,6,9,12,15,18,21,23].map(h=>`<text x="${cx(h).toFixed(1)}" y="${H-7}" font-size="9" fill="#7c8aa0" text-anchor="middle">${String(h).padStart(2,'0')}h</text>`).join('');
+  el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" style="display:block">${grid}${rects}${nums}${metaLine}${poly}${dots}${nowM}${yax}${xl}</svg>`;
+}
+/* ---- filtro do gráfico hora×espera por classificação de risco (foco + toggle) ---- */
+let rtComboSel=null;
+let exClsFilter=null;   /* filtro PRÓPRIO da tabela de Exames (bolinha de cor), independente da tira de cima */
+/* série ilustrativa por classificação: atendimentos = fatia da cor; espera = prioridade (alta acuidade espera menos) */
+function rtClassSeries(cls){
+  const rows=DADOS.rtManchester, tot=rows.reduce((a,r)=>a+r[1],0);
+  const cnt=(rows.find(r=>r[0]===cls)||[null,0])[1], share=tot?cnt/tot:0;
+  const espMod={Vermelho:0.28,Laranja:0.45,Amarelo:0.72,Verde:1.12,Azul:1.20,Branco:1.15}[cls]||1;
+  return {bars:DADOS.rtHoras.map(v=>Math.round(v*share)), line:DADOS.esperaMedico.map(v=>Math.min(60,Math.round(v*espMod))), cnt, share};
+}
+/* só limpa o gráfico + destaque da tira (sem mexer no custo) */
+function rtComboClearChart(){
+  rtComboSel=null;
+  const strip=document.getElementById('rt-manch'); strip.classList.remove('has-sel');
+  strip.querySelectorAll('.ms-item').forEach(x=>x.classList.remove('ms-sel'));
+  comboChart(document.getElementById('rt-combo'), DADOS.rtHoras, DADOS.esperaMedico);
+  const cap=document.getElementById('rt-combo-cap'); if(cap) cap.textContent='24h · todas as classificações · clique numa cor da classificação de risco (acima) para filtrar o gráfico';
+}
+/* custo discriminado por classificação (mesma base do Boletim) */
+function rtCustoClassif(cls){
+  const c=DADOS.custoClassif[cls]; if(!c) return;
+  document.getElementById('rt-custo-tkm').textContent=c.tkm;
+  document.getElementById('rt-custo-sub').textContent='classificação '+cls+' · composição do ticket médio dessa cor';
+  document.getElementById('rt-custo-meta').textContent='ticket médio dessa classificação · naturalmente varia com a complexidade';
+  custoBars(c.comp);
+}
+/* custo no estado geral (24h) */
+function rtCustoGeral(){
+  document.getElementById('rt-custo-tkm').textContent='R$ 45,80';
+  document.getElementById('rt-custo-sub').textContent='últimas 24h · composição do custo por atendimento';
+  document.getElementById('rt-custo-meta').innerHTML='meta ≤ R$ 48,00 · <b style="color:var(--green)">dentro</b>';
+  custoBars(DADOS.custoComp);
+}
+/* custo volta ao que a tira de cima manda (ou geral) — usado ao limpar um CID */
+function rtCustoStripOrGeral(){ if(rtComboSel) rtCustoClassif(rtComboSel); else rtCustoGeral(); }
+/* só tira o destaque do CID (sem mexer em custo/exames) */
+function rtCidClearHighlight(){
+  const cidEl=document.getElementById('rt-cid');
+  if(cidEl){ cidEl.classList.remove('has-sel'); cidEl.querySelectorAll('.cid-row').forEach(x=>x.classList.remove('cid-sel')); }
+}
+/* renderiza a tabela de Exames conforme o SEU próprio filtro (bolinha de cor), independente da tira */
+function renderExamesView(){
+  if(exClsFilter){
+    document.getElementById('rt-exames-sub').textContent='solicitações da classificação '+exClsFilter+' · a coluna Sol. mostra a quantidade dessa cor por exame · clique na bolinha de novo para voltar';
+    renderExames(DADOS.examesRT, exClsFilter);
+  } else {
+    document.getElementById('rt-exames-sub').textContent='quantitativo geral e estratificado (24h) · clique numa bolinha de cor para filtrar por classificação, ou num CID acima para ver por patologia';
+    renderExames(DADOS.examesRT);
+  }
+}
+function rtComboReset(){
+  rtComboClearChart();
+  rtCustoGeral();   /* a tira de cima controla gráfico + custo; a tabela de Exames é independente e não muda aqui */
+}
+function rtComboFilter(cls){
+  if(rtComboSel===cls){ rtComboReset(); return; }  /* toggle: volta a todas */
+  rtComboSel=cls;
+  const strip=document.getElementById('rt-manch'); strip.classList.add('has-sel');
+  strip.querySelectorAll('.ms-item').forEach(x=>x.classList.toggle('ms-sel', x.dataset.cls===cls));
+  const s=rtClassSeries(cls);
+  comboChart(document.getElementById('rt-combo'), s.bars, s.line, CORCLASS[cls]);
+  const cap=document.getElementById('rt-combo-cap');
+  if(cap) cap.innerHTML=`Filtrando por <b style="color:${cssv(CORCLASS[cls])}">${cls}</b> · ${s.cnt.toLocaleString('pt-BR')} atendimentos (${(s.share*100).toFixed(1).replace('.',',')}%) — barras = volume dessa cor por hora · linha = espera dessa cor · <b>clique de novo para voltar a todas</b>`;
+  rtCidClearHighlight();   /* custo é mútuo-exclusivo com o CID: limpa o CID */
+  renderExamesView();      /* desfaz um eventual recorte de CID; a tabela de Exames segue o SEU filtro (bolinha), não a tira */
+  rtCustoClassif(cls);     /* custo discriminado dessa classificação */
+}
+function rtManch(el){
+  const rows=DADOS.rtManchester, tot=rows.reduce((a,r)=>a+r[1],0);
+  el.innerHTML=`<span class="ms-title">Classificação de risco · 24h</span>`+rows.map(r=>`<span class="ms-item" data-cls="${r[0]}" title="Filtrar o gráfico e o custo por ${r[0]}"><i style="background:${cssv(CORCLASS[r[0]]||'var(--teal)')}"></i>${r[0]} <b>${r[1].toLocaleString('pt-BR')}</b> · ${(r[1]/tot*100).toFixed(1).replace('.',',')}%</span>`).join('');
+  el.querySelectorAll('.ms-item').forEach(it=>it.addEventListener('click',()=>rtComboFilter(it.dataset.cls)));
+}
+function vsmRender(el){
+  const conn=(s,gargalo)=>{const over=parseInt(s.media)>s.meta;
+    return `<div class="vsm-conn ${gargalo?'gargalo':''}"><span class="vc-media ${over?'over':''}">méd ${s.media}</span><span class="vc-maior" data-et="${(s.et||'').replace(/"/g,'&quot;')}" data-maior="${s.maior}" data-pac="${(s.pac||'').replace(/"/g,'&quot;')}">máx ${s.maior} ▸</span><span class="vc-meta">meta ≤ ${s.meta} min</span></div>`;};
+  let h='<div class="vsm">';
+  DADOS.vsm.forEach((s,i)=>{
+    if(i>0) h+=conn({...s, et:'Até '+s.n}, false);
+    h+=`<div class="vsm-box"><div class="vn">${s.n}</div><div class="vq">${s.q}</div></div>`;
+  });
+  const f=DADOS.vsmFim;
+  h+=conn({...f, et:'Reavaliação → desfecho'}, true);
+  h+=`<div class="vsm-box vsm-fim"><div class="vn">Desfecho</div><div class="vq">Alta ${f.alta} · Intern. ${f.internacao}</div><div style="font-size:10px;color:var(--muted);margin-top:2px">aguardando leito ${f.leito}</div></div>`;
+  h+='</div>';
+  h+=`<div id="rt-vsm-detail" class="callout" style="margin-top:12px;display:none"></div>`;
+  el.innerHTML=h;
+  el.querySelectorAll('.vc-maior').forEach(c=>c.addEventListener('click',()=>{
+    el.querySelectorAll('.vc-maior').forEach(x=>x.classList.remove('sel')); c.classList.add('sel');
+    const d=document.getElementById('rt-vsm-detail'); d.style.display='block';
+    d.innerHTML=`<b>Maior espera — ${c.dataset.et}:</b> ${c.dataset.maior} · atendimento <b>${c.dataset.pac}</b>`;
+  }));
+}
+
+/* ---------- Navegação ---------- */
+const titles={
+ "p-monit":["Desempenho Operacional","Macro primeiro; clique num indicador ou caixa para aprofundar."],
+ "p-fila":["Jornada Operacional","Operação agora — atendimentos por hora, espera, jornada (VSM), CID, custo e exames."],
+ "p-pacientes":["Jornada Assistencial","Pacientes presentes na unidade no período — etapa, tempo e médico."],
+ "p-demanda":["Demanda & Escala","Mapa de calor de espera e de abertura de ficha por dia e hora × escala de médicos."],
+ "p-boletim":["Boletim Médico","Extrato individual do médico frente ao grupo — encaminhável ao plantonista."],
+ "p-comp":["Comparativo dos médicos","Mapa de calor da equipe por indicador — quem se destaca e quem precisa de apoio."],
+};
+document.querySelectorAll('.nav-item').forEach(el=>el.addEventListener('click',()=>{
+  const id=el.dataset.page;
+  if(!id) return;   /* itens "a construir" (Educadoc, Escala) não navegam */
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active')); el.classList.add('active');
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('show'));
+  document.getElementById(id).classList.add('show');
+  document.getElementById('pg-title').textContent=titles[id][0];
+  document.getElementById('pg-q').textContent=titles[id][1];
+  document.querySelector('.content').scrollTop=0;
+}));
+
+/* ---------- Render Tempo Real ---------- */
+document.getElementById('rt-kpis').innerHTML=DADOS.rtKpis.map(k=>{
+  const stcls=k.st?(' kpi-'+k.st):'';
+  const stlbl=k.st==='out'?' · <b style="color:var(--red)">fora</b>':(k.st==='risk'?' · <b style="color:var(--amber)">atenção</b>':(k.st==='in'?' · <b style="color:var(--green)">ok</b>':''));
+  /* só "Atendimentos" (global) é clicável (abre os CIDs); os demais são leitura estática */
+  const on=k.ctx==='global';
+  return `<div class="card kpi2${on?' rtk-card':''}${stcls}"${on?` data-ctx="${k.ctx}" data-lab="${k.lab.replace(/"/g,'&quot;')}" title="Ver os CIDs das últimas 24h"`:''}><div class="lab">${k.lab}</div><div class="val2">${k.val}</div><div class="ex">${k.meta}${stlbl}</div></div>`;
+}).join('');
+function rtCid(ctx,label){
+  document.getElementById('rt-cid-title').textContent = ctx==='global'?'CIDs nas últimas 24h':('CIDs — '+label);
+  document.getElementById('rt-cid-sub').textContent = (ctx==='global'?'principais diagnósticos (24h)':'principais diagnósticos do recorte (24h)')+' · clique num CID para ver custo e exames';
+  rtCidBars(document.getElementById('rt-cid'), DADOS.cids[ctx]||DADOS.cids.global);
+  cidReset();
+}
+document.querySelectorAll('#rt-kpis .rtk-card').forEach(c=>c.addEventListener('click',()=>{
+  document.querySelectorAll('#rt-kpis .rtk-card').forEach(x=>x.classList.remove('rtk-active'));
+  c.classList.add('rtk-active');
+  rtCid(c.dataset.ctx, c.dataset.lab);
+}));
+rtManch(document.getElementById('rt-manch'));
+comboChart(document.getElementById('rt-combo'));
+vsmRender(document.getElementById('rt-vsm'));
+/* Médicos do turno */
+const TCLS=["Vermelho","Laranja","Amarelo","Verde","Azul","Branco"];
+const TMOD={Vermelho:{lab:2.0,ex:2.2,md:0.8,cu:3.0,esp:0.30},Laranja:{lab:1.6,ex:1.7,md:0.9,cu:2.2,esp:0.45},Amarelo:{lab:1.2,ex:1.2,md:1.0,cu:1.4,esp:0.72},Verde:{lab:0.8,ex:0.7,md:1.15,cu:0.7,esp:1.12},Azul:{lab:0.5,ex:0.4,md:1.1,cu:0.4,esp:1.20},Branco:{lab:0.5,ex:0.5,md:0.9,cu:0.5,esp:1.15}};
+let curTurno='manha';
+function renderTurno(t, sel){
+  curTurno=t; sel=sel||'atend';
+  const d=DADOS.turnos[t], sitCls={ofensor:'s-out','atenção':'s-risk',ok:'s-in',bom:'s-in'};
+  const isColor=sel!=='atend', mod=isColor?TMOD[sel]:null;
+  document.getElementById('turno-sub').textContent=d.label+(isColor?(' · indicadores da classificação '+sel):' · indicadores no geral')+' · clique em Atend ou numa cor · 🔴 fora/em risco';
+  const pct=v=>Math.round(v)+'%', rs=v=>'R$ '+Math.round(v);
+  const clsHead=TCLS.map(c=>{const dim=isColor&&c!==sel;return `<th class="tcol ${isColor&&c===sel?'tcol-sel':''}" data-sel="${c}" title="${c}" style="text-align:center;cursor:pointer;${dim?'opacity:.28':''}"><span class="cdot" style="background:${cssv(CORCLASS[c])}"></span></th>`;}).join('');
+  const head=`<thead><tr><th>Médico</th><th class="tcol" data-sel="atend" style="text-align:center;cursor:pointer;${isColor?'opacity:.45':''}">Atend.</th>${clsHead}<th>Atend/h</th><th>Espera</th><th>% Lab</th><th>% Imagem</th><th>% Medic.</th><th>Custo</th><th>Situação</th></tr></thead>`;
+  const fA=(m,k,v)=> m.flags.includes(k)?`<td style="color:var(--red);font-weight:700">🔴 ${v}</td>`:`<td>${v}</td>`;
+  const fG=(m,k,v)=> (!isColor&&m.flags.includes(k))?`<td style="color:var(--red);font-weight:700">🔴 ${v}</td>`:`<td>${v}</td>`;
+  const body=d.medicos.map(m=>{
+    const lab=mod?m.lab*mod.lab:m.lab, ex=mod?m.exames*mod.ex:m.exames, md=mod?m.medic*mod.md:m.medic, cu=mod?m.custo*mod.cu:m.custo;
+    const esp=mod?Math.round(parseInt(m.espera)*mod.esp)+' min':m.espera;
+    const clsCells=m.classif.map((v,i)=>{const c=TCLS[i], dim=isColor&&c!==sel, selc=isColor&&c===sel; return `<td style="text-align:center;${dim?'opacity:.28':''}${selc?'background:#eef7f7;font-weight:700':''}">${v||'—'}</td>`;}).join('');
+    const atendCell=`<td style="text-align:center;${isColor?'opacity:.45':''}"><b>${m.atend}</b></td>`;
+    return `<tr><td><b>${m.nome}</b></td>${atendCell}${clsCells}${fA(m,'atendH',m.atendH)}${fA(m,'espera',esp)}${fG(m,'lab',pct(lab))}${fG(m,'exames',pct(ex))}${fG(m,'medic',pct(md))}${fG(m,'custo',rs(cu))}<td><span class="status-pill ${sitCls[m.sit]}">${m.sit}</span></td></tr>`;
+  }).join('');
+  document.getElementById('rt-turno').innerHTML=head+"<tbody>"+body+"</tbody>";
+  document.querySelectorAll('#turno-toggle button').forEach(b=>b.classList.toggle('on', b.dataset.t===t));
+  document.querySelectorAll('#rt-turno .tcol').forEach(th=>th.addEventListener('click',()=>renderTurno(curTurno, th.dataset.sel)));
+}
+document.querySelectorAll('#turno-toggle button').forEach(b=>b.addEventListener('click',()=>renderTurno(b.dataset.t)));
+(function(){let h=12; try{h=new Date().getHours();}catch(e){} renderTurno((h>=7&&h<13)?'manha':(h>=13&&h<19)?'tarde':'noturno');})();
+rtCid('global');
+function renderExames(list, clsFilter){
+  const CLASSORD=["Verde","Amarelo","Laranja","Branco","Azul","Vermelho"];
+  const head="<thead><tr><th>Exame</th><th style='text-align:center'>Sol."+(clsFilter?` <span style="font-weight:400;color:var(--muted)">(${clsFilter})</span>`:'')+"</th>"+
+    CLASSORD.map(c=>{const dim=clsFilter&&c!==clsFilter, selc=clsFilter&&c===clsFilter; return `<th class="exdot" data-cls="${c}" title="Filtrar exames por ${c}" style="text-align:center;cursor:pointer;${dim?'opacity:.28':''}${selc?'background:#eef7f7':''}"><span class="cdot" style="background:${cssv(CORCLASS[c])}"></span></th>`;}).join('')+
+    "<th style='text-align:right'>Ticket médio</th></tr></thead>";
+  const distDefault={Verde:.50,Amarelo:.28,Laranja:.10,Branco:.03,Azul:.05,Vermelho:.04}; // quebra ilustrativa quando o recorte (CID) não traz a classificação
+  const body=list.map((e,i)=>{
+    const cmap={};
+    if(e.classif){ e.classif.forEach(c=>cmap[c[0]]=c[1]); }
+    else { let acc=0; CLASSORD.forEach((c,ci)=>{ if(ci<CLASSORD.length-1){cmap[c]=Math.round(e.q*distDefault[c]); acc+=cmap[c];} else {cmap[c]=Math.max(0,e.q-acc);} }); }
+    const solVal=clsFilter?(cmap[clsFilter]||0):e.q;
+    const ratio=clsFilter?(e.q?solVal/e.q:0):1;
+    const sub=e.sub.map(s=>`<span class="ms-item" style="gap:4px"><b>${s[0]}</b> ${clsFilter?Math.round(s[1]*ratio):s[1]}</span>`).join('');
+    const cCells=CLASSORD.map(c=>{const dim=clsFilter&&c!==clsFilter, selc=clsFilter&&c===clsFilter; return `<td style="text-align:center;${dim?'opacity:.28':''}${selc?'background:#eef7f7;font-weight:700':''}">${(cmap[c]||0).toLocaleString('pt-BR')}</td>`;}).join('');
+    return `<tr class="ex-row row-click" data-i="${i}"><td><b>${e.n}</b> <span class="ex-caret" data-c="${i}" style="color:var(--muted);font-size:11px">▸</span></td><td style="text-align:center"><b>${solVal.toLocaleString('pt-BR')}</b></td>${cCells}<td style="text-align:right">${e.tkm}</td></tr>`+
+      `<tr class="ex-detail" data-d="${i}" style="display:none"><td colspan="${CLASSORD.length+3}" style="background:#f7fafc"><div style="font-size:11px;color:var(--muted);margin-bottom:5px">Principais solicitados</div><div class="manch-strip">${sub}</div></td></tr>`;
+  }).join('');
+  document.getElementById('rt-exames').innerHTML=head+"<tbody>"+body+"</tbody>";
+  document.querySelectorAll('#rt-exames .ex-row').forEach(r=>r.addEventListener('click',()=>{
+    const i=r.dataset.i, d=document.querySelector('#rt-exames .ex-detail[data-d="'+i+'"]'), c=r.querySelector('.ex-caret');
+    const open=d.style.display==='none'; d.style.display=open?'table-row':'none'; if(c) c.textContent=open?'▾':'▸';
+  }));
+  /* bolinhas do cabeçalho = filtro PRÓPRIO da tabela de Exames (independente da tira de cima) */
+  document.querySelectorAll('#rt-exames thead .exdot').forEach(th=>th.addEventListener('click',()=>{
+    exClsFilter=(exClsFilter===th.dataset.cls)?null:th.dataset.cls;   /* toggle */
+    rtCidClearHighlight();      /* na tabela de Exames, cor e CID são mútuo-exclusivos */
+    rtCustoStripOrGeral();      /* custo volta ao filtro da tira (ou geral) */
+    renderExamesView();
+  }));
+}
+function custoBars(comp){ bars(document.getElementById('rt-custo'), comp, {nameW:130,color:()=>'var(--teal)',right:r=>'R$ '+r[1].toFixed(2).replace('.',',')}); }
+function cidReset(){
+  rtCustoStripOrGeral();   /* custo volta ao filtro da tira (ou geral) */
+  renderExamesView();      /* Exames volta ao SEU filtro (bolinha) ou geral */
+}
+function cidSelect(code,label){
+  exClsFilter=null;        /* CID e cor são mútuo-exclusivos na tabela de Exames */
+  const d=DADOS.cidDetail[code];
+  if(d){
+    document.getElementById('rt-custo-tkm').textContent=d.tkm;
+    document.getElementById('rt-custo-sub').textContent='patologia '+label+' · composição do custo';
+    document.getElementById('rt-custo-meta').textContent='ticket médio da patologia · naturalmente varia com a complexidade';
+    document.getElementById('rt-exames-sub').textContent='patologia '+label+' · exames solicitados';
+    custoBars(d.comp); renderExames(d.exames);
+  } else {
+    cidReset();
+    document.getElementById('rt-custo-sub').textContent='patologia '+label+' · (sem detalhamento; exibindo média 24h)';
+    document.getElementById('rt-exames-sub').textContent='patologia '+label+' · (média 24h)';
+  }
+}
+function rtCidBars(el, rows){
+  el.classList.remove('has-sel');
+  const max=Math.max(...rows.map(r=>r[1]));
+  el.innerHTML=rows.map(r=>`<div class="bar-h cid-row" data-cid="${r[0].split(' · ')[0]}" data-lab="${r[0].replace(/"/g,'&quot;')}" style="cursor:pointer"><div class="name" style="width:150px">${r[0]}</div><div class="track"><div class="fill" style="width:${(r[1]/max*100).toFixed(1)}%;background:var(--teal)"></div></div><div class="n">${r[1].toLocaleString('pt-BR')}</div></div>`).join('');
+  el.querySelectorAll('.cid-row').forEach(row=>row.addEventListener('click',()=>{
+    if(row.classList.contains('cid-sel')){ el.querySelectorAll('.cid-row').forEach(x=>x.classList.remove('cid-sel')); el.classList.remove('has-sel'); cidReset(); return; }  /* toggle: volta a todos */
+    if(rtComboSel) rtComboClearChart();   /* um recorte por vez: limpa o filtro de classificação */
+    el.querySelectorAll('.cid-row').forEach(x=>x.classList.remove('cid-sel')); row.classList.add('cid-sel');
+    el.classList.add('has-sel');
+    cidSelect(row.dataset.cid, row.dataset.lab);
+  }));
+}
+renderExames(DADOS.examesRT);
+
+/* ---------- Render das páginas de drill ---------- */
+/* Pacientes no hospital */
+function renderPacientes(f){
+  f=f||'todos';
+  const all=DADOS.pacientes, count=et=>all.filter(p=>p[3]===et).length;
+  const boxes=`<div class="etapa-box ${f==='todos'?'active':''}" data-f="todos"><div class="en">Todos</div><div class="ec">${all.length}</div></div>`+
+    DADOS.etapasOrdem.map(et=>`<div class="etapa-box ${f===et?'active':''}" data-f="${et}"><div class="en">${et}</div><div class="ec">${count(et)}</div></div>`).join('');
+  document.getElementById('pac-etapas').innerHTML=boxes;
+  document.querySelectorAll('#pac-etapas .etapa-box').forEach(c=>c.addEventListener('click',()=>renderPacientes(c.dataset.f)));
+  document.getElementById('pac-tbl-title').textContent = (f==='todos'?'Pacientes na unidade':'Pacientes na etapa: '+f)+' (LGPD: código + CID · sem nome)';
+  const dot=c=>`<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${cssv({Vermelho:'var(--vermelho)',Laranja:'var(--laranja)',Amarelo:'var(--amarelo)',Verde:'var(--verde)',Azul:'var(--azul)',Branco:'var(--branco)'}[c])};margin-right:6px"></span>`;
+  const t=v=> v==='—'?'—':`${v} min`, sim=v=> v==='Sim'?`<b style="color:var(--red)">Sim</b>`:'—', intern=v=> v==='—'?'—':`<b style="color:var(--red)">${v}</b>`, numc=v=> v>0?`<b style="color:var(--red)">${v}</b>`:'—', rs=v=> v>0?('R$ '+v):'—';
+  /* SLA por etapa (ilustrativo) + derivação dos tempos internos e da via da medicação */
+  const SLA={triag:8, exame:65, med:35, desf:45};
+  const hh=s=>{let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;return h;};
+  const deriva=p=>{const hp=hh(p[0]), hasImg=p[6]>0, hasExam=p[6]>0||p[7]>0, med=p[8]==='Sim';
+    return {examTAT:hasExam?(hasImg?50+hp%45:32+hp%22):null, medTAT:med?16+hp%28:null,
+      via:med?(['Vermelho','Laranja'].includes(p[1])?'EV':(p[1]==='Amarelo'?(hp%2?'EV':'IM'):(hp%3===0?'IM':'VO'))):null};};
+  const slaCell=(v,sla)=> v==null?'<td style="text-align:center">—</td>':`<td style="text-align:center;color:${v>sla?'var(--red)':'var(--green)'};font-weight:700">${v} min</td>`;
+  const timeCell=(v,sla)=> v==='—'?'<td style="text-align:center">—</td>':`<td style="text-align:center;${v>sla?'color:var(--red);font-weight:700':''}">${v} min</td>`;
+  const viaBadge=v=> v==null?'—':`<b style="color:var(--teal-d)">${v}</b>`;
+  const rows=(f==='todos'?all:all.filter(p=>p[3]===f));
+  const der=rows.map(deriva), mean=arr=>arr.length?Math.round(arr.reduce((a,b)=>a+b,0)/arr.length):null;
+  const avgTriag=mean(rows.map(p=>p[4]).filter(v=>v!=='—')), avgExam=mean(der.map(d=>d.examTAT).filter(v=>v!=null)),
+        avgMed=mean(der.map(d=>d.medTAT).filter(v=>v!=null)), avgDesf=mean(rows.map(p=>p[5]).filter(v=>v!=='—'));
+  const tempoCard=(lab,val,sla)=>{const st=val==null?'':(val>sla?' kpi-out':' kpi-in'), stl=val==null?'':(val>sla?' · <b style="color:var(--red)">fora do SLA</b>':' · <b style="color:var(--green)">no SLA</b>');
+    return `<div class="card kpi2${st}"><div class="lab">${lab}</div><div class="val2">${val==null?'—':val+' min'}</div><div class="ex">SLA ≤ ${sla} min${stl}</div></div>`;};
+  document.getElementById('pac-tempos').innerHTML=tempoCard('Triagem → médico',avgTriag,SLA.triag)+tempoCard('Solicitação → laudo',avgExam,SLA.exame)+tempoCard('Prescrição → adm. medicação',avgMed,SLA.med)+tempoCard('Médico → desfecho',avgDesf,SLA.desf);
+  document.getElementById('tb-pacientes').innerHTML="<thead><tr><th>Atend.</th><th>Classif.</th><th>Etapa</th><th style='text-align:center'>Esp. triag→méd</th><th style='text-align:center'>Sol→laudo</th><th style='text-align:center'>Presc→adm med</th><th style='text-align:center'>Méd→desfecho</th><th style='text-align:center'>Img</th><th style='text-align:center'>Lab</th><th style='text-align:center'>Med (via)</th><th style='text-align:center'>Ret.</th><th>Internação</th><th style='text-align:right'>Custo</th><th>Médico</th></tr></thead><tbody>"+
+   rows.map((p,ri)=>{const d=der[ri];
+     return `<tr><td><b>${p[0]}</b><br><span style='font-size:11px;color:var(--muted)'>${p[2]}</span></td><td>${dot(p[1])}${p[1]}</td><td>${p[3]}</td>${timeCell(p[4],SLA.triag)}${slaCell(d.examTAT,SLA.exame)}${slaCell(d.medTAT,SLA.med)}${timeCell(p[5],SLA.desf)}<td style="text-align:center">${numc(p[6])}</td><td style="text-align:center">${numc(p[7])}</td><td style="text-align:center">${viaBadge(d.via)}</td><td style="text-align:center">${sim(p[9])}</td><td>${intern(p[10])}</td><td style="text-align:right">${rs(p[11])}</td><td>${p[12]}</td></tr>`;
+   }).join('')+"</tbody>";
+}
+renderPacientes('todos');
+/* Boletim Médico (layout Desempenho, por médico) */
+(function(){
+  const nomes=Object.keys(DADOS.boletimMed);
+  document.getElementById('bol-sel').innerHTML=nomes.map(n=>`<option value="${n.replace(/"/g,'&quot;')}">${n}</option>`).join('');
+  document.getElementById('bol-sel').addEventListener('change',e=>renderBol(e.target.value));
+  const valColor=s=> s==='out'?'color:var(--red);font-weight:700':(s==='risk'?'color:var(--amber-d,#9a7414);font-weight:700':'');
+  /* ----- custo discriminado (clicável por classificação ou CID) ----- */
+  let bolCustoGeral={tkm:'R$ 45,80', comp:DADOS.custoComp};
+  function bolCustoBars(comp){ bars(document.getElementById('bol-custo-bars'), comp, {nameW:130,color:()=>'var(--teal)',right:r=>'R$ '+r[1].toFixed(2).replace('.',',')}); }
+  function renderBolCusto(tkm, comp, sub){ document.getElementById('bol-custo-tkm').textContent=tkm; document.getElementById('bol-custo-sub').textContent=sub; bolCustoBars(comp); }
+  /* limpa toda a seleção (barras em foco cheio) e volta o custo ao geral */
+  function bolCustoClear(){
+    const manch=document.getElementById('bol-manch'), dd=document.getElementById('bol-drill-bars');
+    manch.classList.remove('has-sel'); dd.classList.remove('has-sel');
+    manch.querySelectorAll('.bar-h').forEach(x=>x.classList.remove('cls-sel'));
+    dd.querySelectorAll('.cid-row').forEach(x=>x.classList.remove('cid-sel'));
+  }
+  function bolCustoReset(){ bolCustoClear(); renderBolCusto(bolCustoGeral.tkm, bolCustoGeral.comp, 'composição do custo por atendimento · clique numa classificação (esq.) ou num CID (dir.) para detalhar'); }
+  function bolCustoClassif(name){ const c=DADOS.custoClassif[name]; if(c) renderBolCusto(c.tkm, c.comp, 'classificação '+name+' · composição do ticket médio dessa cor · clique de novo para voltar a todos'); }
+  function bolCustoCid(code,label){ const c=DADOS.cidDetail[code]; if(c) renderBolCusto(c.tkm, c.comp, 'patologia '+label+' · composição do custo · clique de novo para voltar a todos'); else renderBolCusto(bolCustoGeral.tkm, bolCustoGeral.comp, 'patologia '+label+' · (sem detalhamento; exibindo média do médico)'); }
+  /* barras de CID clicáveis: seleciona (foca e recalcula) · clica de novo para voltar a todos */
+  function bolCidBars(el, rows){
+    const dd=document.getElementById('bol-drill-bars');
+    const max=Math.max(...rows.map(r=>r[1]));
+    el.innerHTML=rows.map(r=>`<div class="bar-h cid-row" data-cid="${r[0].split(' · ')[0]}" data-lab="${r[0].replace(/"/g,'&quot;')}" style="cursor:pointer"><div class="name" style="width:150px">${r[0]}</div><div class="track"><div class="fill" style="width:${(r[1]/max*100).toFixed(1)}%;background:var(--teal)"></div></div><div class="n">${r[1].toLocaleString('pt-BR')}</div></div>`).join('');
+    el.querySelectorAll('.cid-row').forEach(row=>row.addEventListener('click',()=>{
+      if(row.classList.contains('cid-sel')){ bolCustoReset(); return; }   /* toggle: volta a todos */
+      bolCustoClear(); row.classList.add('cid-sel'); dd.classList.add('has-sel');
+      bolCustoCid(row.dataset.cid, row.dataset.lab);
+    }));
+  }
+  /* barras de classificação (bol-manch) clicáveis: mesmo modelo (foca, recalcula, toggle) */
+  function bolWireClassif(ctx){
+    const rows=DADOS.classif[ctx]||DADOS.classif.global;
+    const manch=document.getElementById('bol-manch');
+    manch.querySelectorAll('.bar-h').forEach((bar,i)=>{
+      const name=rows[i]&&rows[i][0]; if(!name||!DADOS.custoClassif[name]) return;
+      bar.style.cursor='pointer';
+      bar.addEventListener('click',()=>{
+        if(bar.classList.contains('cls-sel')){ bolCustoReset(); return; }   /* toggle: volta a todos */
+        bolCustoClear(); bar.classList.add('cls-sel'); manch.classList.add('has-sel');
+        bolCustoClassif(name);
+      });
+    });
+  }
+  function renderBol(n){
+    document.getElementById('bol-sel').value=n;
+    const d=DADOS.boletimMed[n];
+    document.getElementById('bol-nome').textContent="Boletim — "+n;
+    const din=d.ind.filter(i=>i[5]==='in').length, dri=d.ind.filter(i=>i[5]==='risk').length, dou=d.ind.filter(i=>i[5]==='out').length, tot=d.ind.length;
+    document.getElementById('bol-placar').innerHTML=din+" <small style='font-size:20px;color:var(--muted)'>de "+tot+"</small>";
+    document.getElementById('bol-farol').innerHTML=`<i style="width:${din/tot*100}%;background:var(--green)"></i><i style="width:${dri/tot*100}%;background:var(--amber)"></i><i style="width:${dou/tot*100}%;background:var(--red)"></i>`;
+    document.getElementById('bol-sem').innerHTML="<thead><tr><th>Indicador</th><th>Meta</th><th>Você</th><th>Média equipe</th><th>Delta</th><th>Situação</th></tr></thead><tbody>"+
+     d.ind.map(i=>{const dcls=i[4].startsWith('+')?'delta-neg':(i[4].startsWith('−')?'delta-pos':'');
+       return `<tr class="${i[5]==='out'?'ofensor':''}"><td><b>${i[0]}</b></td><td>${i[1]}</td><td style="${valColor(i[5])}">${i[2]}</td><td>${i[3]}</td><td class="${dcls}">${i[4]}</td><td><span class="status-pill ${spill[i[5]]}">${stxt[i[5]]}</span></td></tr>`;}).join('')+"</tbody>";
+    document.getElementById('bol-apoio').innerHTML=d.apoio.map(a=>`<div class="card kpi2"><div class="lab">${a[0]}</div><div class="val2">${a[1]}</div><div class="ex">média equipe: ${a[2]}</div></div>`).join('');
+    const cRow=d.ind.find(i=>/custo/i.test(i[0]));
+    bolCustoGeral={tkm:cRow?cRow[2]:'—', comp:DADOS.custoComp};
+    bolCustoReset();
+    document.getElementById('bol-resumo').innerHTML="<b>Resumo (linguagem neutra):</b> "+d.resumo;
+  }
+  /* análise dirigida do boletim (reusa os dados do Desempenho) */
+  document.getElementById('bol-chips').innerHTML=DADOS.chips.map(c=>`<div class="chip-box" data-ctx="${c[0]}"><span class="ic">${c[2]}</span>${c[1]}</div>`).join('');
+  function bolDrill(ctx){
+    document.querySelectorAll('#bol-chips .chip-box').forEach(c=>c.classList.toggle('active', c.dataset.ctx===ctx));
+    const ci=DADOS.classifInfo[ctx]||DADOS.classifInfo.global;
+    document.getElementById('bol-classif-title').textContent=ci[0];
+    document.getElementById('bol-classif-sub').textContent=ci[1];
+    classifBars(document.getElementById('bol-manch'), DADOS.classif[ctx]||DADOS.classif.global, 'qtd');
+    bolWireClassif(ctx);
+    const info=DADOS.ctxInfo[ctx]||DADOS.ctxInfo.global;
+    document.getElementById('bol-drill-title').textContent=info.title;
+    document.getElementById('bol-drill-stat').textContent=info.stat;
+    const tip=document.getElementById('bol-drill-tip'); tip.innerHTML=info.tip; tip.className='callout'+(info.warn?' warn':'');
+    const el=document.getElementById('bol-drill-bars');
+    if(ctx==='espera'){ classifBars(el, DADOS.esperaTempo, 'min'); }
+    else if(STRAT[ctx]){
+      const s=STRAT[ctx]; el.innerHTML='';
+      const a=document.createElement('div'); a.className='mini'; a.style.margin='0 0 6px'; a.innerHTML='<b>'+s.cidLabel+'</b>'; el.appendChild(a);
+      const d1=document.createElement('div'); bolCidBars(d1, DADOS.cids[ctx]); el.appendChild(d1);
+      const b=document.createElement('div'); b.className='mini'; b.style.margin='14px 0 6px'; b.innerHTML='<b>'+s.stratLabel+'</b>'; el.appendChild(b);
+      const d2=document.createElement('div'); bars(d2, s.strat, {nameW:150, color:()=>'var(--amber)', right:s.right}); el.appendChild(d2);
+    } else { bolCidBars(el, DADOS.cids[ctx]||DADOS.cids.global); }
+    bolCustoReset();
+  }
+  document.querySelectorAll('#bol-chips .chip-box').forEach(c=>c.addEventListener('click',()=>bolDrill(c.dataset.ctx)));
+  bolDrill('global');
+  renderBol(nomes[0]);
+})();
+/* Demanda & Escala (linear 1–31) */
+(function(){
+  const WD=["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"], DIAS=[];
+  for(let n=1;n<=31;n++) DIAS.push([n, WD[(n-1)%7]]);
+  const dfE=[1.2,1.0,1.0,1.05,1.1,0.85,0.8], dfF=[1.15,1.0,1.0,1.05,1.1,0.7,0.6];
+  const esp=(h,dn)=>{const wd=(dn-1)%7, b=(h>=7&&h<=11)?46:(h>=14&&h<=18)?40:(h>=12&&h<=13)?28:(h>=19&&h<=22)?20:8; return Math.round(b*dfE[wd]+(h%3)*2+((dn*7)%5));};
+  const fic=(h,dn)=>{const wd=(dn-1)%7, b=(h>=8&&h<=11)?20:(h>=14&&h<=18)?16:(h>=12&&h<=13)?12:(h>=19&&h<=22)?9:3; return Math.round(b*dfF[wd]+((dn*3)%3));};
+  const wknd=wd=>wd>=5;
+  const head="<thead><tr><th></th>"+DIAS.map(d=>`<th class='dh ${wknd((d[0]-1)%7)?'wknd':''}'>${d[0]}<small>${d[1]}</small></th>`).join('')+"</tr></thead>";
+  let r1='';
+  for(let h=0;h<24;h++){ r1+=`<tr><td class='hh'>${String(h).padStart(2,'0')}h</td>`+DIAS.map(d=>{const v=esp(h,d[0]), hue=Math.max(0,120*(1-v/60));return `<td class='cell' title='dia ${d[0]} (${d[1]}) · ${String(h).padStart(2,'0')}h · espera ${v} min' style='background:hsl(${hue.toFixed(0)},68%,80%)'>${v}</td>`;}).join('')+"</tr>"; }
+  document.getElementById('heat-espera').innerHTML=head+"<tbody>"+r1+"</tbody>";
+  /* escala por hora × dia: padrão por turno projetado na hora */
+  const turnoOf=h=> (h>=7&&h<13)?0:(h>=13&&h<19)?1:2;
+  const escBase=(ti,dn)=>{const wd=(dn-1)%7, base=[[4,4,4,4,5,3,3],[4,4,4,4,5,3,3],[3,3,3,3,3,2,2]][ti]; return base[wd];};
+  const escHora=(h,dn)=> escBase(turnoOf(h),dn);
+  /* mapa de ficha: modo Volume ou Por médico (ficha ÷ escala) */
+  let fichaMode='vol';
+  function renderFicha(){
+    let maxv=0; for(let h=0;h<24;h++)for(let dn=1;dn<=31;dn++){const e=escHora(h,dn); const v=fichaMode==='vol'?fic(h,dn):(e?fic(h,dn)/e:0); if(v>maxv)maxv=v;}
+    maxv=maxv||1; let r2='';
+    for(let h=0;h<24;h++){ r2+=`<tr><td class='hh'>${String(h).padStart(2,'0')}h</td>`+DIAS.map(d=>{
+      const raw=fic(h,d[0]), e=escHora(h,d[0]), v=fichaMode==='vol'?raw:(e?raw/e:0), op=(0.1+0.9*v/maxv).toFixed(2);
+      const show=fichaMode==='vol'?v:(Math.round(v*10)/10).toString().replace('.',',');
+      const title=fichaMode==='vol'?`dia ${d[0]} (${d[1]}) · ${String(h).padStart(2,'0')}h · ${raw} fichas`:`dia ${d[0]} (${d[1]}) · ${String(h).padStart(2,'0')}h · ${raw} fichas ÷ ${e} méd = ${show}/médico`;
+      return `<td class='cell' title='${title}' style='background:rgba(18,163,160,${op});color:${v/maxv>0.5?'#fff':'#1f2d3d'}'>${show}</td>`;}).join('')+"</tr>"; }
+    document.getElementById('heat-ficha').innerHTML=head+"<tbody>"+r2+"</tbody>";
+    document.getElementById('ficha-sub').textContent=fichaMode==='vol'?'dia 1–31 × hora · intensidade = volume de atendimentos':'dia 1–31 × hora · fichas ÷ médicos escalados = produtividade/sobrecarga por hora';
+    document.querySelectorAll('#ficha-toggle button').forEach(b=>b.classList.toggle('on', b.dataset.m===fichaMode));
+  }
+  renderFicha();
+  document.querySelectorAll('#ficha-toggle button').forEach(b=>b.addEventListener('click',()=>{fichaMode=b.dataset.m; renderFicha();}));
+  /* escala por hora × dia (heat) */
+  let maxe=0; for(let h=0;h<24;h++)for(let dn=1;dn<=31;dn++)maxe=Math.max(maxe,escHora(h,dn));
+  let re='';
+  for(let h=0;h<24;h++){ re+=`<tr><td class='hh'>${String(h).padStart(2,'0')}h</td>`+DIAS.map(d=>{const v=escHora(h,d[0]), op=(0.14+0.86*v/maxe).toFixed(2);return `<td class='cell' title='dia ${d[0]} (${d[1]}) · ${String(h).padStart(2,'0')}h · ${v} médicos escalados' style='background:rgba(20,55,95,${op});color:${v/maxe>0.5?'#fff':'#1f2d3d'}'>${v}</td>`;}).join('')+"</tr>"; }
+  document.getElementById('tb-escala').innerHTML=head+"<tbody>"+re+"</tbody>";
+  /* escala fica colapsada; abre ao clicar no título */
+  document.getElementById('escala-toggle').addEventListener('click',()=>{
+    const w=document.getElementById('escala-wrap'), open=w.style.display!=='none';
+    w.style.display=open?'none':'block';
+    document.getElementById('escala-caret').textContent=open?'▸':'▾';
+  });
+})();
+
+/* Médicos — detalhado */
+(function(){
+  const CL=[["Vermelho","var(--vermelho)"],["Laranja","var(--laranja)"],["Amarelo","var(--amarelo)"],["Verde","var(--verde)"],["Azul","var(--azul)"],["Branco","var(--branco)"]];
+  let spot=-1;
+  function fc(i){return spot>=0&&spot!==i?'fade':(spot===i?'spot':'');}
+  function render(){
+    const espMod=[0.30,0.45,0.72,1.12,1.20,1.15], cuMod=[3.0,2.2,1.4,0.7,0.4,0.5];  // alta acuidade = espera menor (prioridade) · custo maior
+    const medMod=[0.80,0.90,1.00,1.15,1.10,0.90], labMod=[2.0,1.6,1.2,0.8,0.5,0.5], imgMod=[2.2,1.7,1.2,0.7,0.4,0.5], retMod=[0.5,0.7,0.9,1.1,1.2,1.0], intMod=[8,5,2,0.3,0.5,0.2];
+    const METAS={med:30, lab:25, img:20, ret:10, int:0.5};
+    const pctNum=s=>parseFloat(String(s).replace('%','').replace(',','.')), fmtP=(v,d)=>v.toFixed(d).replace('.',',')+'%';
+    /* % de cada indicador (meta em %) no recorte atual: geral ou classificação selecionada */
+    function pcts(m){
+      let pm=m.medp, pl=m.at?m.lab/m.at*100:0, pi=m.at?m.img[0]/m.at*100:0, pr=pctNum(m.ret), pin=pctNum(m.int);
+      if(spot>=0){ pm=Math.min(100,pm*medMod[spot]); pl=Math.min(100,pl*labMod[spot]); pi=Math.min(100,pi*imgMod[spot]); pr=pr*retMod[spot]; pin=pin*intMod[spot]; }
+      return {pm,pl,pi,pr,pin};
+    }
+    const allP=DADOS.medDetalhe.map(pcts);
+    const best={pm:Math.min(...allP.map(s=>s.pm)),pl:Math.min(...allP.map(s=>s.pl)),pi:Math.min(...allP.map(s=>s.pi)),pr:Math.min(...allP.map(s=>s.pr)),pin:Math.min(...allP.map(s=>s.pin))};
+    const pctTd=(v,meta,bestv,dec)=>{const over=v>meta+1e-9, bst=Math.abs(v-bestv)<1e-9&&!over; const st=over?'color:var(--red);font-weight:700':(bst?'color:var(--green);font-weight:700':''); return `<td style="text-align:center;${st}">${fmtP(v,dec)}</td>`;};
+    const h1="<tr><th rowspan='2'>Médico</th><th colspan='7'>Atendimentos</th><th rowspan='2'>Espera<br>triag→méd</th><th colspan='4'>Medicação (via + %)</th><th colspan='7'>Exames (nº + %)</th><th colspan='2'>Resultado (%)</th><th colspan='7'>Custo — ticket médio (R$)</th></tr>";
+    const h2=`<tr><th class='clh ${spot<0?'spot':''}' data-i='-1' title='Geral (todos)'>Geral ▲</th>`+CL.map((c,i)=>`<th class='clh ${fc(i)}' data-i='${i}' title='${c[0]}'><span class='cdot' style='background:${cssv(c[1])}'></span>▲</th>`).join('')+
+      "<th>VO</th><th>IM</th><th>EV</th><th>% Med</th><th>Lab</th><th>% Lab</th><th>Img</th><th>% Img</th><th>RX</th><th>US</th><th>TC</th><th>Ret.72h</th><th>Intern.</th><th>Geral</th><th>Med</th><th>Lab</th><th>Img</th><th>RX</th><th>US</th><th>TC</th></tr>";
+    const rs=v=> v>0?('R$ '+v):'—', nz=x=> x>0?x:'—', R=x=>Math.round(x);
+    const body=DADOS.medDetalhe.map((m,mi)=>{
+      const clc=m.cl.map((v,i)=>`<td class='${fc(i)}'>${v||'—'}</td>`).join('');
+      const p=allP[mi];
+      let esp=m.esp, tkm=m.tkm, VO=m.med[0], IM=m.med[1], EV=m.med[2], lab=m.lab, img=m.img.slice();
+      if(spot>=0){
+        const atC=m.cl[spot], sh=m.at?atC/m.at:0; esp=R(m.esp*espMod[spot]); tkm=R(m.tkm*cuMod[spot]);
+        VO=R(m.med[0]*sh); IM=R(m.med[1]*sh); EV=R(m.med[2]*sh);
+        lab=R(p.pl/100*atC);
+        const imgTotC=R(p.pi/100*atC), g=m.img[0]||1;
+        img=[imgTotC, R(m.img[1]*imgTotC/g), R(m.img[2]*imgTotC/g), R(m.img[3]*imgTotC/g)];
+      }
+      return `<tr><td><b>${m.n}</b></td><td><b>${m.at}</b></td>${clc}<td>${esp} min</td>`+
+        `<td>${nz(VO)}</td><td>${nz(IM)}</td><td>${nz(EV)}</td>${pctTd(p.pm,METAS.med,best.pm,1)}`+
+        `<td>${nz(lab)}</td>${pctTd(p.pl,METAS.lab,best.pl,1)}<td>${nz(img[0])}</td>${pctTd(p.pi,METAS.img,best.pi,1)}<td>${nz(img[1])}</td><td>${nz(img[2])}</td><td>${nz(img[3])}</td>`+
+        `${pctTd(p.pr,METAS.ret,best.pr,1)}${pctTd(p.pin,METAS.int,best.pin,2)}`+
+        `<td><b>R$ ${tkm}</b></td>${m.tkmc.map(v=>`<td>${rs(v)}</td>`).join('')}</tr>`;
+    }).join('');
+    const cap=spot>=0?`Recalculado para a classificação <b style="color:${cssv(CL[spot][1])}">${CL[spot][0]}</b> — %, espera, nº e custo só dessa cor. Nas colunas de %: <b style="color:var(--red)">vermelho</b> = fora da meta · <b style="color:var(--green)">verde</b> = melhor do grupo. Clique de novo para voltar ao geral.`:'Clique numa classificação (▲) para recalcular por cor. Nas colunas de %: <b style="color:var(--red)">vermelho</b> = fora da meta · <b style="color:var(--green)">verde</b> = melhor do grupo.';
+    document.getElementById('tb-meddet').innerHTML="<thead>"+h1+h2+"</thead><tbody>"+body+"</tbody>";
+    const capEl=document.getElementById('meddet-cap'); if(capEl) capEl.innerHTML=cap;
+    document.querySelectorAll('#tb-meddet .clh').forEach(th=>th.addEventListener('click',()=>{const i=+th.dataset.i; spot=(spot===i?-1:i); render();}));
+  }
+  render();
+})();
+
+/* Comparativo dos médicos */
+(function(){
+  const cls={in:'heat-in',risk:'heat-risk',out:'heat-out'};
+  document.getElementById('heat-atend').innerHTML="<thead><tr><th>Médico</th>"+DADOS.heatCols.map(c=>`<th style='text-align:center'>${c}</th>`).join('')+"</tr></thead><tbody class='heat'>"+
+   DADOS.heatMedicos.map(m=>`<tr><td><b>${m.n}</b></td>`+m.c.map(c=>`<td class='hc ${cls[c[1]]}'>${c[0]}</td>`).join('')+"</tr>").join('')+"</tbody>";
+  const max=Math.max(...DADOS.heatHora.flatMap(m=>m.v));
+  document.getElementById('heat-hora').innerHTML="<thead><tr><th>Médico</th>"+DADOS.heatHoraCols.map(c=>`<th style='text-align:center'>${c}</th>`).join('')+"</tr></thead><tbody class='heat'>"+
+   DADOS.heatHora.map(m=>`<tr><td><b>${m.n}</b></td>`+m.v.map(v=>{const op=(0.12+0.88*v/max).toFixed(2);return `<td class='hc' style='background:rgba(18,163,160,${op});color:${v/max>0.55?'#fff':'var(--ink)'}'>${v}</td>`;}).join('')+"</tr>").join('')+"</tbody>";
+  const nomes=Object.keys(DADOS.compMedicos);
+  document.getElementById('comp-sel').innerHTML=`<span style="font-size:12px;color:var(--muted);margin-right:8px">Pesquisar médico:</span><select id="comp-select" class="periodo" style="min-width:280px">${nomes.map(n=>`<option value="${n.replace(/"/g,'&quot;')}">${n}</option>`).join('')}</select>`;
+  const sinal={melhora:'<span style="color:var(--green)">▲ melhora</span>',piora:'<span style="color:var(--red)">▼ piora</span>',estavel:'<span style="color:var(--muted)">= estável</span>'};
+  function renderComp(n){
+    document.getElementById('comp-select').value=n;
+    const d=DADOS.compMedicos[n];
+    document.getElementById('tb-comp-periodo').innerHTML="<thead><tr><th>Indicador</th>"+DADOS.compPeriodos.map(p=>`<th style='text-align:center'>${p}</th>`).join('')+"<th>Tendência</th></tr></thead><tbody>"+
+     d.ind.map(r=>`<tr><td>${r[0]}</td>`+r[1].map((v,i)=>`<td style='text-align:center${i===r[1].length-1?';font-weight:700':''}'>${v}</td>`).join('')+`<td>${sinal[r[2]]}</td></tr>`).join('')+"</tbody>";
+    document.getElementById('comp-resumo').innerHTML=d.resumo;
+  }
+  document.getElementById('comp-select').addEventListener('change',e=>renderComp(e.target.value));
+  renderComp(nomes[0]);
+})();
+
+/* init */
+renderSemaforo(DADOS.indicadores);
+renderKpis('geral');
+renderDrill('global');
+</script>
+</body>
+</html>

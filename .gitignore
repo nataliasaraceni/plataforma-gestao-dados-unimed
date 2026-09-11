@@ -1,0 +1,6 @@
+# Repositório de compartilhamento: versiona APENAS o protótipo navegável.
+# Tudo o mais (documentos estratégicos, notas internas, .docx, .DS_Store) fica de fora.
+*
+!.gitignore
+!LEIAME.md
+!Plataforma_Ideal_Mockup.html
